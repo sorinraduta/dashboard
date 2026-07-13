@@ -1,0 +1,7 @@
+{
+  "name": "new-tab",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Dashboard",
+  "description": "Personal new tab dashboard with quests, markets, news, and monitors.",
+  "version": "1.0.0",
+  "icons": {
+    "16": "src/icon.png",
+    "48": "src/icon.png",
+    "128": "src/icon.png"
+  },
+  "chrome_url_overrides": {
+    "newtab": "src/index.html"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "host_permissions": [
+    "https://dummyjson.com/*",
+    "https://github.com/*",
+    "https://hacker-news.firebaseio.com/*",
+    "https://api.coingecko.com/*",
+    "https://api.frankfurter.dev/*",
+    "https://github-contributions-api.jogruber.de/*",
+    "https://query1.finance.yahoo.com/*",
+    "https://*/*",
+    "http://*/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https:;"
+  }
+}
