@@ -364,6 +364,28 @@ export function getQuestHistory() {
     return Object.values(history).sort((a, b) => b.ts - a.ts);
 }
 
+// Public: toggle the done state of a single item within a stored history day.
+// The current period is routed through the live quest state so progress and
+// streaks stay in sync; past periods are edited directly in the history log.
+export function toggleHistoryItemAt(periodDate, itemIndex) {
+    const history = loadHistory();
+    const rec = history[periodDate];
+    if (!rec || !rec.items[itemIndex]) return;
+    const item = rec.items[itemIndex];
+
+    if (periodDate === getCurrentPeriodDate()) {
+        const idx = quests.findIndex((q) => q.label === item.label);
+        if (idx !== -1) { toggle(idx); return; }
+    }
+
+    item.done = !item.done;
+    rec.completed = rec.items.filter((it) => it.done).length;
+    try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch {}
+    refreshExpandedHistory();
+}
+
 function shouldReset() {
     const lastReset = parseInt(localStorage.getItem(RESET_KEY) || "0", 10);
     return lastReset < getLastResetBoundary();

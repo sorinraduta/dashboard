@@ -1,5 +1,5 @@
 import { injectStyles } from "./styles.js";
-import { getQuestHistory } from "./quests.js";
+import { getQuestHistory, toggleHistoryItemAt } from "./quests.js";
 
 const css = `
 .hist-list {
@@ -76,6 +76,16 @@ const css = `
     border: 1px solid var(--border);
     color: var(--dim);
     white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.15s, color 0.15s;
+}
+.hist-tag:hover {
+    border-color: var(--accent);
+    color: var(--text);
+}
+.hist-tag.done:hover {
+    color: var(--accent);
 }
 .hist-tag.done {
     color: var(--accent);
@@ -93,6 +103,10 @@ function escHtml(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function escAttr(s) {
+    return escHtml(s).replace(/"/g, "&quot;");
+}
+
 function formatDate(ts) {
     const d = new Date(ts);
     return {
@@ -105,8 +119,8 @@ function dayRow(rec) {
     const pct = rec.total ? Math.round((rec.completed / rec.total) * 100) : 0;
     const { main, dow } = formatDate(rec.ts);
     const tags = rec.items
-        .map((it) =>
-            `<span class="hist-tag ${it.done ? "done" : "miss"}">${escHtml(it.label)}</span>`
+        .map((it, i) =>
+            `<span class="hist-tag ${it.done ? "done" : "miss"}" role="button" tabindex="0" title="Toggle" data-date="${escAttr(rec.date)}" data-idx="${i}">${escHtml(it.label)}</span>`
         )
         .join("");
     return `
@@ -121,6 +135,24 @@ function dayRow(rec) {
     `;
 }
 
+// Delegate clicks/keys on the container to the tag under the cursor, toggling
+// that day's item. Bound once per container so repeated renders don't stack it.
+function bindToggle(container) {
+    if (container.__histBound) return;
+    container.__histBound = true;
+    const fire = (target) => {
+        const tag = target.closest?.(".hist-tag");
+        if (!tag || !container.contains(tag)) return;
+        const idx = Number(tag.dataset.idx);
+        if (!tag.dataset.date || Number.isNaN(idx)) return;
+        toggleHistoryItemAt(tag.dataset.date, idx);
+    };
+    container.addEventListener("click", (e) => fire(e.target));
+    container.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fire(e.target); }
+    });
+}
+
 // Render the task-history list (newest first) into the given container element.
 export function renderHistory(container) {
     injectStyles("tasks-history", css);
@@ -128,4 +160,5 @@ export function renderHistory(container) {
     container.innerHTML = records.length
         ? `<div class="hist-list">${records.map(dayRow).join("")}</div>`
         : `<div class="hist-empty">No task history yet.<br/>Complete a task to start tracking your days.</div>`;
+    bindToggle(container);
 }
