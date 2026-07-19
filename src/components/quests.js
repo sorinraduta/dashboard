@@ -340,6 +340,24 @@ function periodToDate(periodDate) {
     return new Date(y, m, d);
 }
 
+function dateToPeriod(d) {
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+// A day only reaches the log once something is toggled on it, so days where
+// nothing was completed leave a hole in the timeline. Build a stand-in record
+// for those, using the task list carried over from the last recorded day.
+function emptyRecord(periodDate, labels) {
+    return {
+        date: periodDate,
+        ts: periodToDate(periodDate).getTime(),
+        total: labels.length,
+        completed: 0,
+        items: labels.map((label) => ({ label, done: false })),
+        empty: true,
+    };
+}
+
 // Persist the results of a finished period so they can be shown in the history view.
 function recordHistory(periodDate, prevQuests) {
     try {
@@ -358,10 +376,32 @@ function recordHistory(periodDate, prevQuests) {
     } catch {}
 }
 
-// Public: history records, newest period first.
+// Public: history records, newest period first. Every day from the first
+// recorded one through the current period is present; days that were never
+// written to the log appear as zero-completion entries rather than being
+// skipped, so the streak of "nothing done" days stays visible.
 export function getQuestHistory() {
     const history = loadHistory();
-    return Object.values(history).sort((a, b) => b.ts - a.ts);
+    const stored = Object.values(history).sort((a, b) => a.ts - b.ts);
+    if (!stored.length) return [];
+
+    const records = [];
+    const cursor = periodToDate(stored[0].date);
+    const endTs = periodToDate(getCurrentPeriodDate()).getTime();
+    let labels = stored[0].items.map((it) => it.label);
+
+    while (cursor.getTime() <= endTs) {
+        const key = dateToPeriod(cursor);
+        const rec = history[key];
+        if (rec) {
+            labels = rec.items.map((it) => it.label);
+            records.push(rec);
+        } else {
+            records.push(emptyRecord(key, labels));
+        }
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return records.reverse();
 }
 
 // Public: toggle the done state of a single item within a stored history day.
@@ -369,8 +409,13 @@ export function getQuestHistory() {
 // streaks stay in sync; past periods are edited directly in the history log.
 export function toggleHistoryItemAt(periodDate, itemIndex) {
     const history = loadHistory();
-    const rec = history[periodDate];
+    // Gap days are only synthesized for display; toggling one writes it to the
+    // log for real so the change survives a reload.
+    const rec = history[periodDate]
+        || getQuestHistory().find((r) => r.date === periodDate);
     if (!rec || !rec.items[itemIndex]) return;
+    history[periodDate] = rec;
+    delete rec.empty;
     const item = rec.items[itemIndex];
 
     if (periodDate === getCurrentPeriodDate()) {
