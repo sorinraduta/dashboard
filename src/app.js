@@ -7,7 +7,7 @@ import { LinksPanel } from "./components/links.js";
 import { MonitorPanel } from "./components/monitor.js";
 import { WisdomPanel } from "./components/wisdom.js";
 import { MarketsPanel } from "./components/markets.js";
-import { GithubPanel } from "./components/github.js";
+import { GithubPanel, openGithubProfile } from "./components/github.js";
 import { openConfigEditor, handleEditorKeys } from "./components/config-editor.js";
 
 const css = `
@@ -26,6 +26,7 @@ const COMMANDS = [
     { key: "c", action: openConfigEditor },
     { key: "q", action: openQuestsExpanded },
     { key: "n", action: openHackerNews },
+    { key: "g", action: openGithubProfile },
 ];
 
 function isEditableTarget(el) {

@@ -325,6 +325,10 @@ function showNoCommitsAlert() {
     });
 }
 
+export function openGithubProfile() {
+    window.open(`https://github.com/${GITHUB_USER}`, "_blank");
+}
+
 export function GithubPanel() {
     injectStyles("github", css);
     queueMicrotask(async () => {
