@@ -11,6 +11,8 @@ const css = `
     text-align: center;
     position: relative;
     overflow: hidden;
+    container-type: inline-size;
+    container-name: clock;
 }
 
 .clock-panel .panel-title {
@@ -18,19 +20,40 @@ const css = `
 }
 
 .time-display {
-    font-size: 5.5rem;
+    /* Never wrap — when it no longer fits, the seconds are dropped instead. */
+    white-space: nowrap;
+    font-size: clamp(2rem, 11cqi, 5.5rem);
     color: var(--accent);
     letter-spacing: 0.15em;
     line-height: 1;
     font-weight: 300;
     font-variant-numeric: tabular-nums;
+    max-width: 100%;
 }
 
 .date-display {
-    font-size: 0.72rem;
+    font-size: clamp(0.6rem, 4cqi, 0.72rem);
     color: var(--dim);
     margin-top: 10px;
     letter-spacing: 0.12em;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+/* Anything short of a comfortable full-size clock loses the seconds. */
+@container clock (max-width: 640px) {
+    .time-display .sep-sec,
+    .time-display #time-ss {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .clock-panel {
+        grid-column: 1 / -1;
+        grid-row: auto;
+        padding: 18px 12px;
+    }
 }
 `;
 
@@ -41,8 +64,8 @@ function pad(n) {
     return String(n).padStart(2, "0");
 }
 
-function formatTime(d) {
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+function timeParts(d) {
+    return [pad(d.getHours()), pad(d.getMinutes()), pad(d.getSeconds())];
 }
 
 function formatDate(d) {
@@ -51,10 +74,15 @@ function formatDate(d) {
 
 function tick() {
     const now = new Date();
-    const timeEl = document.getElementById("time");
-    const dateEl = document.getElementById("date");
-    if (timeEl) timeEl.textContent = formatTime(now);
-    if (dateEl) dateEl.textContent = formatDate(now);
+    const [hh, mm, ss] = timeParts(now);
+    const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    };
+    set("time-hh", hh);
+    set("time-mm", mm);
+    set("time-ss", ss);
+    set("date", formatDate(now));
 }
 
 export function ClockPanel() {
@@ -64,10 +92,12 @@ export function ClockPanel() {
         setInterval(tick, 1000);
     });
     const now = new Date();
+    const [hh, mm, ss] = timeParts(now);
     return Panel(
         { title: html``, className: "clock-panel" },
         html`
-            <div class="time-display" id="time">${formatTime(now)}</div>
+            <div class="time-display" id="time"><span id="time-hh">${hh}</span>:<span
+                    id="time-mm">${mm}</span><span class="sep-sec">:</span><span id="time-ss">${ss}</span></div>
             <div class="date-display" id="date">${formatDate(now)}</div>
         `,
     );
