@@ -253,9 +253,6 @@ const css = `
 
 const QUESTS_KEY = "quests";
 const RESET_KEY = "quests-reset";
-const STREAKS_KEY = "quests-streaks";
-const STREAKS_DATE_KEY = "quests-streaks-date";
-const STREAK_UNDO_KEY = "quests-streaks-undo";
 const HISTORY_KEY = "quests-history";
 const RESET_HOUR = config.quests.resetHour;
 const RESET_MINUTE = config.quests.resetMinute;
@@ -282,48 +279,6 @@ function getPeriodDate(timestamp) {
 
 function getCurrentPeriodDate() {
     return getPeriodDate(Date.now());
-}
-
-function getYesterdayPeriodDate() {
-    return getPeriodDate(Date.now() - 86400000);
-}
-
-function loadStreaks() {
-    try {
-        const saved = localStorage.getItem(STREAKS_KEY);
-        if (saved) return JSON.parse(saved);
-    } catch {}
-    return {};
-}
-
-function loadStreakDates() {
-    try {
-        const saved = localStorage.getItem(STREAKS_DATE_KEY);
-        if (saved) return JSON.parse(saved);
-    } catch {}
-    return {};
-}
-
-function saveStreaks(streaks) {
-    localStorage.setItem(STREAKS_KEY, JSON.stringify(streaks));
-}
-
-function saveStreakDates(dates) {
-    localStorage.setItem(STREAKS_DATE_KEY, JSON.stringify(dates));
-}
-
-// Snapshots of streak state captured the moment a check earns a point, so that
-// unchecking the same task in the same period can revert it exactly.
-function loadStreakUndo() {
-    try {
-        const saved = localStorage.getItem(STREAK_UNDO_KEY);
-        if (saved) return JSON.parse(saved);
-    } catch {}
-    return {};
-}
-
-function saveStreakUndo(undo) {
-    localStorage.setItem(STREAK_UNDO_KEY, JSON.stringify(undo));
 }
 
 function loadHistory() {
@@ -438,36 +393,7 @@ function shouldReset() {
 
 function loadQuests() {
     if (shouldReset()) {
-        try {
-            const prev = localStorage.getItem(QUESTS_KEY);
-            if (prev) {
-                const prevQuests = JSON.parse(prev);
-
-                const streaks = loadStreaks();
-                const dates = loadStreakDates();
-                const yesterday = getYesterdayPeriodDate();
-
-                for (const q of prevQuests) {
-                    const key = q.label;
-                    if (q.done) {
-                        const lastDate = dates[key] || "";
-                        if (lastDate === yesterday || !streaks[key]) {
-                            streaks[key] = (streaks[key] || 0) + 1;
-                        }
-                        dates[key] = getCurrentPeriodDate();
-                    } else {
-                        if (dates[key] !== yesterday) {
-                            streaks[key] = 0;
-                        }
-                    }
-                }
-                saveStreaks(streaks);
-                saveStreakDates(dates);
-            }
-        } catch {}
-
         localStorage.removeItem(QUESTS_KEY);
-        localStorage.removeItem(STREAK_UNDO_KEY);
         localStorage.setItem(RESET_KEY, String(Date.now()));
         return DEFAULT_QUESTS.map((q) => ({ ...q }));
     }
@@ -511,55 +437,42 @@ function toggle(index) {
     quests[index].done = !quests[index].done;
     saveQuests(quests);
 
-    const q = quests[index];
-    const streaks = loadStreaks();
-    const dates = loadStreakDates();
-    const undo = loadStreakUndo();
-    const today = getCurrentPeriodDate();
-    const yesterday = getYesterdayPeriodDate();
-
-    if (q.done) {
-        // Earn a streak point once per period.
-        if (dates[q.label] !== today) {
-            // Remember the pre-credit state so an uncheck can fully revert it.
-            undo[q.label] = { streak: streaks[q.label] || 0, date: dates[q.label] || "" };
-
-            const lastDate = dates[q.label] || "";
-            if (lastDate === yesterday || !streaks[q.label]) {
-                streaks[q.label] = (streaks[q.label] || 0) + 1;
-            } else {
-                streaks[q.label] = 1;
-            }
-            dates[q.label] = today;
-            saveStreaks(streaks);
-            saveStreakDates(dates);
-            saveStreakUndo(undo);
-        }
-    } else if (undo[q.label]) {
-        // Unchecking reverts exactly the point this check earned this period.
-        streaks[q.label] = undo[q.label].streak;
-        dates[q.label] = undo[q.label].date;
-        delete undo[q.label];
-        saveStreaks(streaks);
-        saveStreakDates(dates);
-        saveStreakUndo(undo);
-    }
-
-    // Record the current period's progress live, so history reflects each toggle.
-    recordHistory(today, quests);
+    // Record the current period's progress live, so history (and streaks,
+    // which are derived from it) reflect each toggle.
+    recordHistory(getCurrentPeriodDate(), quests);
 
     renderQuests();
     refreshExpandedHistory();
 }
 
+// Streaks are derived from the history log rather than tracked incrementally,
+// so any day with no completion — whether the app was opened or not — breaks
+// the chain. Counts today (if done) plus the unbroken run of prior done days.
+function getStreak(label) {
+    const todayQuest = quests.find((q) => q.label === label);
+    const history = loadHistory();
+
+    let streak = todayQuest?.done ? 1 : 0;
+    const cursor = periodToDate(getCurrentPeriodDate());
+    cursor.setDate(cursor.getDate() - 1);
+
+    while (true) {
+        const rec = history[dateToPeriod(cursor)];
+        const item = rec?.items.find((it) => it.label === label);
+        if (!item?.done) break;
+        streak++;
+        cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+}
+
 function renderQuests() {
     const lists = document.querySelectorAll(".quest-list");
     if (!lists.length) return;
-    const streaks = loadStreaks();
 
     const tpl = html`${drag.displayItems().map((q, displayIdx) => {
         const actualIdx = quests.indexOf(q);
-        const s = streaks[q.label] || 0;
+        const s = getStreak(q.label);
         return html`
             <div class="quest-item ${q.done ? "done" : ""} ${drag.classFor(displayIdx)}"
                  draggable="true"
