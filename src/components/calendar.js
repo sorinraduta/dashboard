@@ -109,7 +109,7 @@ const css = `
 `;
 
 const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
-const WEEKDAY_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
+const WEEKDAY_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
 function pad(n) {
@@ -139,7 +139,8 @@ function buildMonthWeeks(d) {
     const year = d.getFullYear();
     const month = d.getMonth();
     const today = d.getDate();
-    const firstWeekday = new Date(year, month, 1).getDay();
+    // Convert JS getDay() (0=Sun..6=Sat) to a Monday-first index (0=Mon..6=Sun).
+    const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     const cells = [];
@@ -150,10 +151,9 @@ function buildMonthWeeks(d) {
     const weeks = [];
     for (let i = 0; i < cells.length; i += 7) {
         const row = cells.slice(i, i + 7);
-        // Thursday (index 4) reliably falls in the same ISO week as the rest
-        // of a Sun–Sat row. Falling back, prefer Mon–Sat (indices 1-6) over
-        // the leading Sunday, which alone can spill into the prior ISO week.
-        const sample = row[4] ?? row.slice(1).find((day) => day !== null) ?? row[0];
+        // Every day in a Mon–Sun row belongs to the same ISO week, so any
+        // present day (real or padding-adjacent) gives the right week number.
+        const sample = row.find((day) => day !== null);
         const weekNumber = sample != null ? getISOWeek(new Date(year, month, sample)) : null;
         weeks.push({ weekNumber, days: row });
     }
@@ -196,7 +196,7 @@ export function CalendarPanel() {
                         <div class="cal-cell cal-week-num">${week.weekNumber ?? ""}</div>
                         ${week.days.map((day, weekday) => {
                             if (day === null) return html`<div class="cal-cell empty"></div>`;
-                            const isWeekend = weekday === 0 || weekday === 6;
+                            const isWeekend = weekday === 5 || weekday === 6;
                             const isToday = day === today;
                             return html`<div class="cal-cell ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
                         })}
