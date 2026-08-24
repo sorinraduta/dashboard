@@ -19,18 +19,6 @@ const css = `
     font-variant-numeric: tabular-nums;
 }
 
-.cal-date {
-    font-size: clamp(0.85rem, 3cqi, 1.15rem);
-    color: var(--text);
-    letter-spacing: 0.08em;
-    margin-bottom: 12px;
-    flex-shrink: 0;
-}
-
-.cal-date .cal-day-name {
-    color: var(--accent);
-}
-
 .cal-grid {
     flex: 1;
     min-height: 0;
@@ -108,9 +96,7 @@ const css = `
 }
 `;
 
-const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 const WEEKDAY_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
-const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
 function pad(n) {
     return String(n).padStart(2, "0");
@@ -118,10 +104,6 @@ function pad(n) {
 
 function formatClock(d) {
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function formatDate(d) {
-    return html`<span class="cal-day-name">${DAYS[d.getDay()]}</span> // ${pad(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 // ISO 8601 week number: weeks start Monday, week 1 contains the year's first Thursday.
@@ -185,7 +167,6 @@ export function CalendarPanel() {
             className: "calendar-panel",
         },
         html`
-            <div class="cal-date">${formatDate(now)}</div>
             <div class="cal-grid">
                 <div class="cal-weekdays">
                     <span></span>
