@@ -41,7 +41,7 @@ const css = `
 .cal-weekdays,
 .cal-days {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: 1.8em repeat(7, 1fr);
 }
 
 .cal-weekdays {
@@ -69,6 +69,13 @@ const css = `
     font-size: clamp(0.6rem, 2.4cqi, 0.85rem);
     color: var(--text);
     border-radius: 3px;
+}
+
+.cal-week-num {
+    font-size: clamp(0.5rem, 1.8cqi, 0.62rem);
+    color: var(--dim);
+    border-right: 1px solid var(--border);
+    margin-right: 2px;
 }
 
 .cal-cell.empty {
@@ -117,7 +124,18 @@ function formatDate(d) {
     return html`<span class="cal-day-name">${DAYS[d.getDay()]}</span> // ${pad(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-function buildMonthCells(d) {
+// ISO 8601 week number: weeks start Monday, week 1 contains the year's first Thursday.
+function getISOWeek(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - dayNum + 3);
+    const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+    const firstThursdayDay = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstThursdayDay + 3);
+    return 1 + Math.round((date - firstThursday) / (7 * 86400000));
+}
+
+function buildMonthWeeks(d) {
     const year = d.getFullYear();
     const month = d.getMonth();
     const today = d.getDate();
@@ -127,7 +145,19 @@ function buildMonthCells(d) {
     const cells = [];
     for (let i = 0; i < firstWeekday; i++) cells.push(null);
     for (let day = 1; day <= daysInMonth; day++) cells.push(day);
-    return { cells, today };
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const weeks = [];
+    for (let i = 0; i < cells.length; i += 7) {
+        const row = cells.slice(i, i + 7);
+        // Thursday (index 4) reliably falls in the same ISO week as the rest
+        // of a Sun–Sat row. Falling back, prefer Mon–Sat (indices 1-6) over
+        // the leading Sunday, which alone can spill into the prior ISO week.
+        const sample = row[4] ?? row.slice(1).find((day) => day !== null) ?? row[0];
+        const weekNumber = sample != null ? getISOWeek(new Date(year, month, sample)) : null;
+        weeks.push({ weekNumber, days: row });
+    }
+    return { weeks, today };
 }
 
 function tick() {
@@ -144,7 +174,7 @@ export function CalendarPanel() {
     });
 
     const now = new Date();
-    const { cells, today } = buildMonthCells(now);
+    const { weeks, today } = buildMonthWeeks(now);
 
     return Panel(
         {
@@ -158,16 +188,19 @@ export function CalendarPanel() {
             <div class="cal-date">${formatDate(now)}</div>
             <div class="cal-grid">
                 <div class="cal-weekdays">
+                    <span></span>
                     ${WEEKDAY_SHORT.map((w) => html`<span>${w}</span>`)}
                 </div>
                 <div class="cal-days">
-                    ${cells.map((day, i) => {
-                        if (day === null) return html`<div class="cal-cell empty"></div>`;
-                        const weekday = (i % 7);
-                        const isWeekend = weekday === 0 || weekday === 6;
-                        const isToday = day === today;
-                        return html`<div class="cal-cell ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
-                    })}
+                    ${weeks.map((week) => html`
+                        <div class="cal-cell cal-week-num">${week.weekNumber ?? ""}</div>
+                        ${week.days.map((day, weekday) => {
+                            if (day === null) return html`<div class="cal-cell empty"></div>`;
+                            const isWeekend = weekday === 0 || weekday === 6;
+                            const isToday = day === today;
+                            return html`<div class="cal-cell ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
+                        })}
+                    `)}
                 </div>
             </div>
         `,
