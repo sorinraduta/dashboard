@@ -26,48 +26,34 @@ const css = `
     flex-direction: column;
 }
 
-.cal-weekdays,
-.cal-days {
-    display: grid;
-    grid-template-columns: 1.8em repeat(7, 1fr);
-}
-
-.cal-weekdays {
-    flex-shrink: 0;
-    margin-bottom: 6px;
-}
-
-.cal-weekdays span {
-    text-align: center;
-    font-size: clamp(0.55rem, 2cqi, 0.65rem);
-    color: var(--dim);
-    letter-spacing: 0.1em;
-}
-
 .cal-days {
     flex: 1;
-    grid-auto-rows: 1fr;
-    gap: 3px;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 2em repeat(7, 1fr);
+    grid-template-rows: auto repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
 }
 
 .cal-cell {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(0.6rem, 2.4cqi, 0.85rem);
+    font-size: clamp(0.62rem, 2.4cqi, 0.85rem);
     color: var(--text);
-    border-radius: 3px;
+    background: var(--panel-bg);
 }
 
-.cal-week-num {
-    font-size: clamp(0.5rem, 1.8cqi, 0.62rem);
+.cal-label {
+    font-size: clamp(0.5rem, 1.8cqi, 0.6rem);
     color: var(--dim);
-    border-right: 1px solid var(--border);
-    margin-right: 2px;
-}
-
-.cal-cell.empty {
-    visibility: hidden;
+    letter-spacing: 0.08em;
+    background: color-mix(in srgb, var(--border) 40%, var(--panel-bg));
+    padding: 5px 0;
 }
 
 .cal-cell.weekend {
@@ -81,7 +67,7 @@ const css = `
 }
 
 @container calendar (max-width: 340px) {
-    .cal-weekdays span:nth-child(n) {
+    .cal-label {
         letter-spacing: 0;
     }
 }
@@ -168,15 +154,13 @@ export function CalendarPanel() {
         },
         html`
             <div class="cal-grid">
-                <div class="cal-weekdays">
-                    <span></span>
-                    ${WEEKDAY_SHORT.map((w) => html`<span>${w}</span>`)}
-                </div>
                 <div class="cal-days">
+                    <div class="cal-cell cal-label"></div>
+                    ${WEEKDAY_SHORT.map((w) => html`<div class="cal-cell cal-label">${w}</div>`)}
                     ${weeks.map((week) => html`
-                        <div class="cal-cell cal-week-num">${week.weekNumber ?? ""}</div>
+                        <div class="cal-cell cal-label">${week.weekNumber ?? ""}</div>
                         ${week.days.map((day, weekday) => {
-                            if (day === null) return html`<div class="cal-cell empty"></div>`;
+                            if (day === null) return html`<div class="cal-cell"></div>`;
                             const isWeekend = weekday === 5 || weekday === 6;
                             const isToday = day === today;
                             return html`<div class="cal-cell ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
