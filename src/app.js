@@ -1,7 +1,7 @@
 import { html, render } from "./vendor/lit-html.js";
 import { injectStyles } from "./components/styles.js";
 import { QuestsPanel, openQuestsExpanded } from "./components/quests.js";
-import { ClockPanel } from "./components/clock.js";
+import { CalendarPanel } from "./components/calendar.js";
 import { NewsPanel, openHackerNews } from "./components/news.js";
 import { LinksPanel } from "./components/links.js";
 import { MonitorPanel } from "./components/monitor.js";
@@ -52,7 +52,7 @@ function Dashboard() {
             ${QuestsPanel()}
             ${GithubPanel()}
             ${MarketsPanel()}
-            ${ClockPanel()}
+            ${CalendarPanel()}
             ${MonitorPanel()}
             ${NewsPanel()}
             ${WisdomPanel()}
