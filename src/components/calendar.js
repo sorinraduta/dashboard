@@ -1,4 +1,4 @@
-import { html } from "../vendor/lit-html.js";
+import { html, render } from "../vendor/lit-html.js";
 import { injectStyles } from "./styles.js";
 import { Panel } from "./panel.js";
 
@@ -12,12 +12,29 @@ const css = `
     container-name: calendar;
 }
 
+.cal-titlegroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .cal-clock {
     font-size: 0.72rem;
     color: var(--accent);
     letter-spacing: 0.1em;
     font-variant-numeric: tabular-nums;
 }
+
+.cal-maximize {
+    background: transparent;
+    border: none;
+    color: var(--dim);
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 0;
+    transition: color 0.15s;
+}
+.cal-maximize:hover { color: var(--accent); }
 
 .cal-grid {
     flex: 1;
@@ -61,9 +78,10 @@ const css = `
 }
 
 .cal-cell.today {
-    background: var(--accent);
-    color: var(--bg);
+    background: color-mix(in srgb, var(--accent) 16%, var(--panel-bg));
+    color: var(--accent);
     font-weight: 500;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 @container calendar (max-width: 340px) {
