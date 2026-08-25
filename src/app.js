@@ -1,7 +1,7 @@
 import { html, render } from "./vendor/lit-html.js";
 import { injectStyles } from "./components/styles.js";
 import { QuestsPanel, openQuestsExpanded } from "./components/quests.js";
-import { CalendarPanel } from "./components/calendar.js";
+import { CalendarPanel, openCalendarExpanded } from "./components/calendar.js";
 import { NewsPanel, openHackerNews } from "./components/news.js";
 import { LinksPanel } from "./components/links.js";
 import { MonitorPanel } from "./components/monitor.js";
@@ -25,6 +25,7 @@ const css = `
 const COMMANDS = [
     { key: "c", action: openConfigEditor },
     { key: "q", action: openQuestsExpanded },
+    { key: "l", action: openCalendarExpanded },
     { key: "n", action: openHackerNews },
     { key: "g", action: openGithubProfile },
 ];

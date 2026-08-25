@@ -98,6 +98,184 @@ const css = `
         min-height: 260px;
     }
 }
+
+/* ── Fullscreen expanded view ───────────────────────────── */
+.cx-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    padding: 18px 22px;
+    overflow: hidden;
+    animation: cx-power-on 420ms steps(1, end);
+}
+
+.cx-overlay.cx-closing {
+    animation: cx-power-off 140ms ease-in forwards;
+}
+
+.cx-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(74, 222, 128, 0.035) 0px,
+        rgba(74, 222, 128, 0.035) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    mix-blend-mode: overlay;
+}
+
+.cx-sweep {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 35%;
+    z-index: 6;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, rgba(74, 222, 128, 0.16), transparent);
+    animation: cx-sweep-move 500ms ease-out forwards;
+}
+
+@keyframes cx-power-on {
+    0%   { opacity: 0; }
+    12%  { opacity: 1; }
+    20%  { opacity: 0.15; }
+    28%  { opacity: 1; }
+    38%  { opacity: 0.3; }
+    50%  { opacity: 1; }
+    100% { opacity: 1; }
+}
+
+@keyframes cx-power-off {
+    to { opacity: 0; }
+}
+
+@keyframes cx-sweep-move {
+    0%   { top: -35%; opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+
+.cx-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 11px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.cx-titlegroup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cx-title {
+    color: var(--accent);
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    animation: cx-title-glitch 420ms steps(2, end);
+}
+
+@keyframes cx-title-glitch {
+    0%   { text-shadow: none; }
+    15%  { text-shadow: -2px 0 var(--accent2), 2px 0 var(--accent3); }
+    30%  { text-shadow: 2px 0 var(--accent2), -2px 0 var(--accent3); }
+    45%  { text-shadow: -1px 0 var(--accent2), 1px 0 var(--accent3); }
+    60%  { text-shadow: 1px 0 var(--accent2), -1px 0 var(--accent3); }
+    100% { text-shadow: none; }
+}
+
+.cx-clock {
+    font-size: 0.72rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+}
+
+.cx-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cx-nav-btn {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--dim);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.cx-nav-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+.cx-month-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: var(--text);
+    min-width: 11ch;
+    text-align: center;
+}
+
+.cx-close {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.cx-close:hover { color: var(--text); border-color: var(--text); }
+
+.cx-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+
+.cx-days {
+    flex: 1;
+    max-width: 900px;
+    display: grid;
+    grid-template-columns: 3.2em repeat(7, 1fr);
+    grid-template-rows: auto repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.cx-days .cal-cell {
+    font-size: clamp(0.9rem, 2vw, 1.5rem);
+}
+
+.cx-days .cal-label {
+    font-size: clamp(0.6rem, 1vw, 0.75rem);
+}
 `;
 
 const WEEKDAY_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
@@ -121,10 +299,7 @@ function getISOWeek(d) {
     return 1 + Math.round((date - firstThursday) / (7 * 86400000));
 }
 
-function buildMonthWeeks(d) {
-    const year = d.getFullYear();
-    const month = d.getMonth();
-    const today = d.getDate();
+function buildMonthWeeks(year, month) {
     // Convert JS getDay() (0=Sun..6=Sat) to a Monday-first index (0=Mon..6=Sun).
     const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -143,13 +318,120 @@ function buildMonthWeeks(d) {
         const weekNumber = sample != null ? getISOWeek(new Date(year, month, sample)) : null;
         weeks.push({ weekNumber, days: row });
     }
-    return { weeks, today };
+    return weeks;
+}
+
+function monthLabel(year, month) {
+    return new Date(year, month, 1)
+        .toLocaleDateString(undefined, { month: "long", year: "numeric" })
+        .toUpperCase();
+}
+
+function monthGrid(year, month) {
+    const weeks = buildMonthWeeks(year, month);
+    const now = new Date();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+    const todayDate = now.getDate();
+
+    return html`
+        <div class="cal-cell cal-label"></div>
+        ${WEEKDAY_SHORT.map((w) => html`<div class="cal-cell cal-label">${w}</div>`)}
+        ${weeks.map((week) => html`
+            <div class="cal-cell cal-label">${week.weekNumber ?? ""}</div>
+            ${week.days.map((day, weekday) => {
+                if (day === null) return html`<div class="cal-cell"></div>`;
+                const isWeekend = weekday === 5 || weekday === 6;
+                const isToday = isCurrentMonth && day === todayDate;
+                return html`<div class="cal-cell ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
+            })}
+        `)}
+    `;
 }
 
 function tick() {
     const now = new Date();
-    const clockEl = document.getElementById("cal-clock");
-    if (clockEl) clockEl.textContent = formatClock(now);
+    document.querySelectorAll(".cal-clock").forEach((el) => { el.textContent = formatClock(now); });
+}
+
+// ── Fullscreen expanded view ───────────────────────────── */
+let expandedEl = null;
+let viewYear = null;
+let viewMonth = null;
+
+function renderExpandedGrid() {
+    if (!expandedEl) return;
+    const days = expandedEl.querySelector(".cx-days");
+    if (days) render(monthGrid(viewYear, viewMonth), days);
+    const label = expandedEl.querySelector(".cx-month-label");
+    if (label) label.textContent = monthLabel(viewYear, viewMonth);
+}
+
+function shiftMonth(delta) {
+    viewMonth += delta;
+    if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    else if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    renderExpandedGrid();
+}
+
+function goToday() {
+    const now = new Date();
+    viewYear = now.getFullYear();
+    viewMonth = now.getMonth();
+    renderExpandedGrid();
+}
+
+function onExpandedKey(e) {
+    if (e.key === "Escape") { e.preventDefault(); closeExpanded(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); shiftMonth(-1); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); shiftMonth(1); }
+}
+
+function closeExpanded() {
+    if (!expandedEl) return;
+    const el = expandedEl;
+    expandedEl = null;
+    document.removeEventListener("keydown", onExpandedKey);
+    el.classList.add("cx-closing");
+    el.addEventListener("animationend", () => el.remove(), { once: true });
+}
+
+export function openCalendarExpanded() {
+    if (expandedEl) { closeExpanded(); return; }
+
+    const now = new Date();
+    viewYear = now.getFullYear();
+    viewMonth = now.getMonth();
+
+    expandedEl = document.createElement("div");
+    expandedEl.className = "cx-overlay";
+    expandedEl.innerHTML = `
+        <div class="cx-sweep"></div>
+        <div class="cx-header">
+            <div class="cx-titlegroup">
+                <span class="cx-title">// CALENDAR</span>
+                <span class="cx-clock cal-clock">${formatClock(now)}</span>
+            </div>
+            <div class="cx-nav">
+                <button class="cx-nav-btn" id="cx-prev">‹</button>
+                <span class="cx-month-label">${monthLabel(viewYear, viewMonth)}</span>
+                <button class="cx-nav-btn" id="cx-next">›</button>
+                <button class="cx-nav-btn" id="cx-today">TODAY</button>
+            </div>
+            <button class="cx-close" id="cx-close">MINIMIZE ⤡</button>
+        </div>
+        <div class="cx-body">
+            <div class="cx-days"></div>
+        </div>
+    `;
+    document.body.appendChild(expandedEl);
+    expandedEl.querySelector("#cx-close").addEventListener("click", closeExpanded);
+    expandedEl.querySelector("#cx-prev").addEventListener("click", () => shiftMonth(-1));
+    expandedEl.querySelector("#cx-next").addEventListener("click", () => shiftMonth(1));
+    expandedEl.querySelector("#cx-today").addEventListener("click", goToday);
+    expandedEl.querySelector(".cx-sweep").addEventListener("animationend", (e) => e.target.remove(), { once: true });
+    document.addEventListener("keydown", onExpandedKey);
+
+    renderExpandedGrid();
 }
 
 export function CalendarPanel() {
@@ -160,30 +442,28 @@ export function CalendarPanel() {
     });
 
     const now = new Date();
-    const { weeks, today } = buildMonthWeeks(now);
 
     return Panel(
         {
             title: html`
-                <span>// CALENDAR</span>
-                <span class="cal-clock" id="cal-clock">${formatClock(now)}</span>
+                <span class="cal-titlegroup">
+                    <span>// CALENDAR</span>
+                    <span class="cal-clock">${formatClock(now)}</span>
+                </span>
+                <button class="cal-maximize" title="Expand" @click=${openCalendarExpanded}>
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none"
+                         stroke="currentColor" stroke-width="1.6"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
+                    </svg>
+                </button>
             `,
             className: "calendar-panel",
         },
         html`
             <div class="cal-grid">
                 <div class="cal-days">
-                    <div class="cal-cell cal-label"></div>
-                    ${WEEKDAY_SHORT.map((w) => html`<div class="cal-cell cal-label">${w}</div>`)}
-                    ${weeks.map((week) => html`
-                        <div class="cal-cell cal-label">${week.weekNumber ?? ""}</div>
-                        ${week.days.map((day, weekday) => {
-                            if (day === null) return html`<div class="cal-cell"></div>`;
-                            const isWeekend = weekday === 5 || weekday === 6;
-                            const isToday = day === today;
-                            return html`<div class="cal-cell ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
-                        })}
-                    `)}
+                    ${monthGrid(now.getFullYear(), now.getMonth())}
                 </div>
             </div>
         `,
