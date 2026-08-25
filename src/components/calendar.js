@@ -84,6 +84,20 @@ const css = `
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
+.cal-cell.day {
+    transition: background 0.1s, color 0.1s;
+}
+
+.cal-cell.day:hover {
+    background: color-mix(in srgb, var(--accent) 12%, var(--panel-bg));
+    color: var(--accent);
+    cursor: default;
+}
+
+.cal-cell.day.today:hover {
+    background: color-mix(in srgb, var(--accent) 26%, var(--panel-bg));
+}
+
 @container calendar (max-width: 340px) {
     .cal-label {
         letter-spacing: 0;
@@ -342,7 +356,7 @@ function monthGrid(year, month) {
                 if (day === null) return html`<div class="cal-cell"></div>`;
                 const isWeekend = weekday === 5 || weekday === 6;
                 const isToday = isCurrentMonth && day === todayDate;
-                return html`<div class="cal-cell ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
+                return html`<div class="cal-cell day ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
             })}
         `)}
     `;
