@@ -272,7 +272,7 @@ const css = `
 
 .cx-days {
     flex: 1;
-    max-width: 900px;
+    width: 100%;
     display: grid;
     grid-template-columns: 3.2em repeat(7, 1fr);
     grid-template-rows: auto repeat(6, 1fr);
@@ -284,7 +284,7 @@ const css = `
 }
 
 .cx-days .cal-cell {
-    font-size: clamp(0.9rem, 2vw, 1.5rem);
+    font-size: clamp(0.9rem, 2.4vw, 2.4rem);
 }
 
 .cx-days .cal-label {
