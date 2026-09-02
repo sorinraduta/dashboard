@@ -77,6 +77,10 @@ const css = `
     color: var(--dim);
 }
 
+.cal-cell.adjacent {
+    color: color-mix(in srgb, var(--dim) 45%, var(--panel-bg));
+}
+
 .cal-cell.today {
     background: color-mix(in srgb, var(--accent) 16%, var(--panel-bg));
     color: var(--accent);
@@ -316,21 +320,20 @@ function getISOWeek(d) {
 function buildMonthWeeks(year, month) {
     // Convert JS getDay() (0=Sun..6=Sat) to a Monday-first index (0=Mon..6=Sun).
     const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+    // Always emit a full 6x7 grid, padded with the surrounding months' days, so
+    // the layout never leaves empty rows showing the grid's background.
     const cells = [];
-    for (let i = 0; i < firstWeekday; i++) cells.push(null);
-    for (let day = 1; day <= daysInMonth; day++) cells.push(day);
-    while (cells.length % 7 !== 0) cells.push(null);
+    for (let i = 0; i < 42; i++) {
+        const date = new Date(year, month, 1 - firstWeekday + i);
+        cells.push({ date, adjacent: date.getMonth() !== month });
+    }
 
     const weeks = [];
     for (let i = 0; i < cells.length; i += 7) {
         const row = cells.slice(i, i + 7);
-        // Every day in a Mon–Sun row belongs to the same ISO week, so any
-        // present day (real or padding-adjacent) gives the right week number.
-        const sample = row.find((day) => day !== null);
-        const weekNumber = sample != null ? getISOWeek(new Date(year, month, sample)) : null;
-        weeks.push({ weekNumber, days: row });
+        // Every day in a Mon–Sun row belongs to the same ISO week.
+        weeks.push({ weekNumber: getISOWeek(row[0].date), days: row });
     }
     return weeks;
 }
@@ -344,19 +347,17 @@ function monthLabel(year, month) {
 function monthGrid(year, month) {
     const weeks = buildMonthWeeks(year, month);
     const now = new Date();
-    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
-    const todayDate = now.getDate();
+    const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
 
     return html`
         <div class="cal-cell cal-label"></div>
         ${WEEKDAY_SHORT.map((w) => html`<div class="cal-cell cal-label">${w}</div>`)}
         ${weeks.map((week) => html`
-            <div class="cal-cell cal-label">${week.weekNumber ?? ""}</div>
-            ${week.days.map((day, weekday) => {
-                if (day === null) return html`<div class="cal-cell"></div>`;
+            <div class="cal-cell cal-label">${week.weekNumber}</div>
+            ${week.days.map(({ date, adjacent }, weekday) => {
                 const isWeekend = weekday === 5 || weekday === 6;
-                const isToday = isCurrentMonth && day === todayDate;
-                return html`<div class="cal-cell day ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}">${day}</div>`;
+                const isToday = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` === todayKey;
+                return html`<div class="cal-cell day ${isWeekend ? "weekend" : ""} ${adjacent ? "adjacent" : ""} ${isToday ? "today" : ""}">${date.getDate()}</div>`;
             })}
         `)}
     `;
