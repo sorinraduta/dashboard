@@ -34,6 +34,22 @@ body.quests-private .quest-item {
     filter: blur(6px);
 }
 
+body.quests-private .quest-item:hover {
+    color: inherit;
+}
+
+body.quests-private .quest-check:hover {
+    color: var(--dim);
+}
+
+body.quests-private .quest-label a {
+    pointer-events: none;
+}
+
+body.quests-private .quest-label a:hover {
+    color: inherit;
+}
+
 .quest-item:last-child {
     border-bottom: none;
 }
@@ -471,6 +487,7 @@ function togglePrivacy() {
     privacyMode = !privacyMode;
     localStorage.setItem(PRIVACY_KEY, privacyMode ? "1" : "0");
     applyPrivacyMode();
+    renderQuests();
 }
 
 const drag = createDraggable({
@@ -527,8 +544,8 @@ function renderQuests() {
         const s = getStreak(q.label);
         return html`
             <div class="quest-item ${q.done ? "done" : ""} ${drag.classFor(displayIdx)}"
-                 draggable="true"
-                 @dragstart=${(e) => drag.start(e, displayIdx)}
+                 draggable=${privacyMode ? "false" : "true"}
+                 @dragstart=${(e) => { if (privacyMode) { e.preventDefault(); return; } drag.start(e, displayIdx); }}
                  @dragend=${(e) => drag.end(e)}
                  @dragover=${(e) => drag.over(e, displayIdx)}
                  @drop=${(e) => drag.drop(e, displayIdx)}
