@@ -27,7 +27,11 @@ const css = `
     border-bottom: 1px solid var(--border);
     user-select: none;
     cursor: grab;
-    transition: all 0.15s;
+    transition: all 0.15s, filter 0.2s;
+}
+
+body.quests-private .quest-item {
+    filter: blur(6px);
 }
 
 .quest-item:last-child {
@@ -102,6 +106,29 @@ const css = `
     transition: color 0.15s;
 }
 .quests-maximize:hover { color: var(--accent); }
+
+.quests-privacy {
+    background: transparent;
+    border: none;
+    color: var(--dim);
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 0;
+    position: relative;
+    transition: color 0.15s;
+}
+.quests-privacy:hover { color: var(--accent); }
+.quests-privacy.active { color: var(--accent3); }
+.quests-privacy.active::after {
+    content: "";
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    top: 50%;
+    height: 1px;
+    background: currentColor;
+    transform: rotate(-45deg);
+}
 
 /* ── Fullscreen expanded view ───────────────────────────── */
 .qx-overlay {
@@ -421,6 +448,31 @@ function saveQuests(data) {
 
 let quests = loadQuests();
 
+const PRIVACY_KEY = "quests-privacy";
+
+function loadPrivacy() {
+    return localStorage.getItem(PRIVACY_KEY) === "1";
+}
+
+let privacyMode = loadPrivacy();
+
+// Reflects privacyMode onto the DOM: a body-level class (so it reaches both
+// the docked panel and the fullscreen overlay's quest lists) plus the
+// toggle button's visual state wherever it's rendered.
+function applyPrivacyMode() {
+    document.body.classList.toggle("quests-private", privacyMode);
+    document.querySelectorAll(".quests-privacy").forEach((btn) => {
+        btn.classList.toggle("active", privacyMode);
+        btn.title = privacyMode ? "Show quests" : "Hide quests";
+    });
+}
+
+function togglePrivacy() {
+    privacyMode = !privacyMode;
+    localStorage.setItem(PRIVACY_KEY, privacyMode ? "1" : "0");
+    applyPrivacyMode();
+}
+
 const drag = createDraggable({
     getItems: () => quests,
     onReorder: (arr) => { quests = arr; saveQuests(quests); },
@@ -523,7 +575,17 @@ export function openQuestsExpanded() {
         <div class="qx-sweep"></div>
         <div class="qx-header">
             <span class="qx-title">// QUESTS</span>
-            <button class="qx-close" id="qx-close">MINIMIZE ⤡</button>
+            <span class="quests-titlegroup">
+                <button class="quests-privacy" title="Hide quests">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="none"
+                         stroke="currentColor" stroke-width="1.6"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" />
+                        <circle cx="8" cy="8" r="2" />
+                    </svg>
+                </button>
+                <button class="qx-close" id="qx-close">MINIMIZE ⤡</button>
+            </span>
         </div>
         <div class="qx-body">
             <div class="qx-col">
@@ -538,11 +600,13 @@ export function openQuestsExpanded() {
     `;
     document.body.appendChild(expandedEl);
     expandedEl.querySelector("#qx-close").addEventListener("click", closeExpanded);
+    expandedEl.querySelector(".quests-privacy").addEventListener("click", togglePrivacy);
     expandedEl.querySelector(".qx-sweep").addEventListener("animationend", (e) => e.target.remove(), { once: true });
     document.addEventListener("keydown", onExpandedKey);
 
     renderQuests();
     refreshExpandedHistory();
+    applyPrivacyMode();
 }
 
 export function QuestsPanel() {
@@ -550,7 +614,7 @@ export function QuestsPanel() {
 
     const done = quests.filter((q) => q.done).length;
 
-    queueMicrotask(renderQuests);
+    queueMicrotask(() => { renderQuests(); applyPrivacyMode(); });
     return Panel(
         {
             title: html`
@@ -558,13 +622,23 @@ export function QuestsPanel() {
                     <span>// QUESTS</span>
                     <span class="quests-progress">[${done}/${quests.length}]</span>
                 </span>
-                <button class="quests-maximize" title="Expand" @click=${openQuestsExpanded}>
-                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none"
-                         stroke="currentColor" stroke-width="1.6"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
-                    </svg>
-                </button>
+                <span class="quests-titlegroup">
+                    <button class="quests-privacy" title="Hide quests" @click=${togglePrivacy}>
+                        <svg viewBox="0 0 16 16" width="11" height="11" fill="none"
+                             stroke="currentColor" stroke-width="1.6"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" />
+                            <circle cx="8" cy="8" r="2" />
+                        </svg>
+                    </button>
+                    <button class="quests-maximize" title="Expand" @click=${openQuestsExpanded}>
+                        <svg viewBox="0 0 16 16" width="11" height="11" fill="none"
+                             stroke="currentColor" stroke-width="1.6"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
+                        </svg>
+                    </button>
+                </span>
             `,
             className: "quests-panel",
         },
