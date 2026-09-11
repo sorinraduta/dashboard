@@ -32,10 +32,15 @@ const css = `
 
 body.quests-private .quest-item {
     filter: blur(6px);
+    cursor: default;
 }
 
 body.quests-private .quest-item:hover {
     color: inherit;
+}
+
+body.quests-private .quest-check {
+    cursor: default;
 }
 
 body.quests-private .quest-check:hover {
@@ -44,6 +49,7 @@ body.quests-private .quest-check:hover {
 
 body.quests-private .quest-label a {
     pointer-events: none;
+    cursor: default;
 }
 
 body.quests-private .quest-label a:hover {
