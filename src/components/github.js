@@ -151,6 +151,11 @@ const css = `
 }
 .gh-alert-close:hover { opacity: 1; }
 
+body.cx-fullscreen-open .gh-alert,
+body.qx-fullscreen-open .gh-alert {
+    display: none;
+}
+
 @keyframes gh-alert-pulse {
     0%, 100% { box-shadow: 0 8px 30px rgba(244, 63, 94, 0.25); }
     50%      { box-shadow: 0 8px 34px rgba(244, 63, 94, 0.45); }

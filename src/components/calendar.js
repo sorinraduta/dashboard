@@ -405,6 +405,7 @@ function closeExpanded() {
     if (!expandedEl) return;
     const el = expandedEl;
     expandedEl = null;
+    document.body.classList.remove("cx-fullscreen-open");
     document.removeEventListener("keydown", onExpandedKey);
     el.classList.add("cx-closing");
     el.addEventListener("animationend", () => el.remove(), { once: true });
@@ -439,6 +440,7 @@ export function openCalendarExpanded() {
         </div>
     `;
     document.body.appendChild(expandedEl);
+    document.body.classList.add("cx-fullscreen-open");
     expandedEl.querySelector("#cx-close").addEventListener("click", closeExpanded);
     expandedEl.querySelector("#cx-prev").addEventListener("click", () => shiftMonth(-1));
     expandedEl.querySelector("#cx-next").addEventListener("click", () => shiftMonth(1));

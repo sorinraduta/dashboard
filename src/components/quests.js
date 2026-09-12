@@ -583,6 +583,7 @@ function closeExpanded() {
     if (!expandedEl) return;
     const el = expandedEl;
     expandedEl = null;
+    document.body.classList.remove("qx-fullscreen-open");
     document.removeEventListener("keydown", onExpandedKey);
     el.classList.add("qx-closing");
     el.addEventListener("animationend", () => el.remove(), { once: true });
@@ -622,6 +623,7 @@ export function openQuestsExpanded() {
         </div>
     `;
     document.body.appendChild(expandedEl);
+    document.body.classList.add("qx-fullscreen-open");
     expandedEl.querySelector("#qx-close").addEventListener("click", closeExpanded);
     expandedEl.querySelector(".quests-privacy").addEventListener("click", togglePrivacy);
     expandedEl.querySelector(".qx-sweep").addEventListener("animationend", (e) => e.target.remove(), { once: true });
