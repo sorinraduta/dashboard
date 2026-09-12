@@ -128,6 +128,12 @@ body.quests-private .quest-label a:hover {
     transition: color 0.15s;
 }
 .quests-maximize:hover { color: var(--accent); }
+.quests-maximize.disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+.quests-maximize.disabled:hover { color: var(--dim); }
 
 .quests-privacy {
     background: transparent;
@@ -487,6 +493,10 @@ function applyPrivacyMode() {
         btn.classList.toggle("active", privacyMode);
         btn.title = privacyMode ? "Show quests" : "Hide quests";
     });
+    document.querySelectorAll(".quests-maximize").forEach((btn) => {
+        btn.classList.toggle("disabled", privacyMode);
+        btn.title = privacyMode ? "Expand disabled while hidden" : "Expand";
+    });
 }
 
 function togglePrivacy() {
@@ -494,6 +504,7 @@ function togglePrivacy() {
     localStorage.setItem(PRIVACY_KEY, privacyMode ? "1" : "0");
     applyPrivacyMode();
     renderQuests();
+    if (privacyMode) closeExpanded();
 }
 
 const drag = createDraggable({
@@ -592,6 +603,7 @@ function closeExpanded() {
 
 export function openQuestsExpanded() {
     if (expandedEl) { closeExpanded(); return; }
+    if (privacyMode) return;
 
     expandedEl = document.createElement("div");
     expandedEl.className = "qx-overlay";
