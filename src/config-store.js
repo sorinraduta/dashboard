@@ -40,19 +40,26 @@ try {
 // Seeds go into the stored JSON as-is, so keys `merge` does not know survive.
 const SEEDS_KEY = "dashboard-config-seeds";
 
-const SEEDS = [
-    {
-        id: "monitor-horah",
+const hostOf = (u) => { try { return new URL(u).hostname; } catch { return null; } };
+
+// A website for the monitor, added unless one on the same host is already there.
+function websiteSeed(id, site) {
+    return {
+        id,
         apply(cfg) {
-            const horah = { name: "horah.app", url: "https://horah.app", check: "https://horah.app", icon: "horah" };
             cfg.monitor = cfg.monitor && typeof cfg.monitor === "object" ? cfg.monitor : {};
             if (!Array.isArray(cfg.monitor.websites)) cfg.monitor.websites = [];
-            const host = (u) => { try { return new URL(u).hostname; } catch { return null; } };
-            if (cfg.monitor.websites.some((w) => host(w?.url) === host(horah.url))) return false;
-            cfg.monitor.websites.push(horah);
+            if (cfg.monitor.websites.some((w) => hostOf(w?.url) === hostOf(site.url))) return false;
+            cfg.monitor.websites.push(site);
             return true;
         },
-    },
+    };
+}
+
+const SEEDS = [
+    websiteSeed("monitor-horah", { name: "horah.app", url: "https://horah.app", check: "https://horah.app", icon: "horah" }),
+    websiteSeed("monitor-kaeli", { name: "kaeli.ro", url: "https://kaeli.ro", check: "https://kaeli.ro", icon: "web" }),
+    websiteSeed("monitor-studiotei29", { name: "studiotei29.ro", url: "https://studiotei29.ro", check: "https://studiotei29.ro", icon: "web" }),
 ];
 
 function applySeeds(stored) {
