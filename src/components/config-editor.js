@@ -1,99 +1,132 @@
 import { injectStyles } from "./styles.js";
 import { getConfig, setConfig } from "../config-store.js";
+import { removeAfterDeparture } from "./sheet.js";
 
+/*
+ * The editor is a modal card of glass over a scrim, the way Horah floats a
+ * sheet: it arrives like glass and leaves the way it came. The code is content,
+ * so it sits in an opaque cell on the glass, in the system's mono face.
+ */
 const css = `
 .cfg-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.65);
     z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(3px);
+}
+
+.cfg-overlay[data-away] {
+    pointer-events: none;
+}
+
+.cfg-scrim {
+    position: absolute;
+    inset: 0;
+    background: var(--scrim);
+    animation: omFadeIn var(--dur-base) var(--ease-gentle) backwards;
+}
+
+.cfg-overlay[data-away] .cfg-scrim {
+    animation: omFadeOut var(--dur-base) var(--ease-gentle) forwards;
 }
 
 .cfg-modal {
-    background: var(--panel-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    width: min(820px, 92vw);
-    height: min(580px, 82vh);
+    position: relative;
+    width: min(860px, 92vw);
+    height: min(620px, 84vh);
     display: flex;
     flex-direction: column;
+    padding: 8px;
+    border-radius: calc(var(--radius-sheet) + 8px);
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: omGlassIn var(--dur-base) var(--ease-spring) backwards;
 }
 
-.cfg-header {
+.cfg-overlay[data-away] .cfg-modal {
+    animation: omGlassOut var(--dur-base) var(--ease-spring-back) forwards;
+}
+
+.cfg-header,
+.cfg-footer {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 9px 14px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
+    gap: 8px;
+    min-height: 52px;
+    padding: 0 8px 0 12px;
 }
 
 .cfg-title {
-    font-size: 0.63rem;
-    color: var(--accent);
-    letter-spacing: 0.05em;
+    flex: 1;
+    font-size: var(--text-headline);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
 }
 
-.cfg-header-actions {
-    display: flex;
-    gap: 4px;
-}
-
-.cfg-btn-ghost {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.05em;
-    padding: 2px 8px;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    background: transparent;
-    color: var(--dim);
+/* The bar's words: capsules in the pane's own wash; the one that keeps is the lit one. */
+.cfg-btn {
+    height: 34px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--fill);
+    color: var(--color-text);
+    font-size: var(--text-subhead);
+    font-weight: 590;
     cursor: pointer;
-    transition: all 0.15s;
-}
-.cfg-btn-ghost:hover {
-    border-color: var(--border);
-    color: var(--text);
 }
 
-/* ── Editor area ─────────────────────────────────────────── */
+.cfg-btn.primary {
+    background: var(--color-accent);
+    color: var(--on-accent);
+}
+
+@media (hover: hover) {
+    .cfg-btn:hover {
+        background: var(--fill-strong);
+    }
+
+    .cfg-btn.primary:hover {
+        background: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
+    }
+}
+
+/* ── Editor area: opaque content on the glass ───────────── */
 .cfg-editor-wrap {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: row;
     overflow: hidden;
-    background: #111;
+    border-radius: var(--radius-sheet);
+    background: var(--color-surface);
 }
 
 .cfg-gutter {
-    width: 44px;
+    width: 52px;
     flex-shrink: 0;
-    background: #0d0d0d;
-    border-right: 1px solid var(--border);
     overflow: hidden;
-    padding: 12px 0;
+    padding: 14px 0;
     user-select: none;
+    box-shadow: inset -0.5px 0 0 var(--hairline);
 }
 
 .ln {
     display: block;
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.72rem;
-    line-height: 1.6;
-    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: var(--text-footnote);
+    line-height: 1.7;
+    color: var(--label-3);
     text-align: right;
-    padding-right: 10px;
+    padding-right: 12px;
     white-space: pre;
+    font-variant-numeric: tabular-nums;
 }
 
-.ln.ln-err { color: var(--accent2); }
+.ln.ln-err { color: var(--red); }
 
 .cfg-code-wrap {
     flex: 1;
@@ -107,8 +140,8 @@ const css = `
     left: 0;
     right: 0;
     display: none;
-    background: rgba(244, 63, 94, 0.1);
-    border-left: 2px solid rgba(244, 63, 94, 0.55);
+    background: color-mix(in srgb, var(--red) 14%, transparent);
+    box-shadow: inset 2px 0 0 var(--red);
     pointer-events: none;
     z-index: 0;
 }
@@ -118,10 +151,11 @@ const css = `
     position: absolute;
     inset: 0;
     margin: 0;
-    padding: 12px 16px;
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.72rem;
-    line-height: 1.6;
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: var(--text-footnote);
+    line-height: 1.7;
+    letter-spacing: 0;
     tab-size: 4;
     white-space: pre;
     word-wrap: normal;
@@ -129,19 +163,17 @@ const css = `
 }
 
 .cfg-hl {
-    background: #111;
-    color: var(--text);
+    background: transparent;
+    color: var(--color-text);
     pointer-events: none;
     z-index: 1;
     border: none;
-    scrollbar-width: none;
 }
-.cfg-hl::-webkit-scrollbar { display: none; }
 
 .cfg-textarea {
     background: transparent;
     color: transparent;
-    caret-color: var(--accent);
+    caret-color: var(--color-accent);
     border: none;
     outline: none;
     resize: none;
@@ -149,50 +181,23 @@ const css = `
     -webkit-text-fill-color: transparent;
 }
 
-/* syntax colors */
-.hl-key  { color: #7dd3fc; }
-.hl-str  { color: var(--accent3); }
-.hl-num  { color: var(--accent); }
-.hl-bool { color: #fb923c; }
-.hl-null { color: var(--dim); }
-
-/* ── Footer ─────────────────────────────────────────────── */
-.cfg-footer {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 14px;
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
+.cfg-textarea::selection {
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
+
+/* Syntax colours from the calendar hues: keys, strings, numbers, literals. */
+.hl-key  { color: var(--cal-blue); }
+.hl-str  { color: var(--cal-red); }
+.hl-num  { color: var(--cal-yellow); }
+.hl-bool { color: var(--cal-pink); }
+.hl-null { color: var(--cal-pink); }
 
 .cfg-hint {
     flex: 1;
-    font-size: 0.56rem;
-    color: var(--dim);
+    font-size: var(--text-footnote);
+    color: var(--label-3);
     white-space: nowrap;
 }
-
-.cfg-actions {
-    display: flex;
-    gap: 6px;
-}
-
-.cfg-btn {
-    padding: 3px 11px;
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.6rem;
-    border-radius: 3px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text);
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.03em;
-}
-.cfg-btn:hover         { border-color: var(--text); }
-.cfg-btn.primary       { border-color: var(--accent); color: var(--accent); }
-.cfg-btn.primary:hover { background: var(--accent); color: var(--bg); }
 `;
 
 function escHtml(s) {
@@ -241,10 +246,14 @@ function parseErrLine(msg, text) {
 let overlayEl = null;
 let pendingApply = null;
 
+// Leaves the way it came; mounted until the departure ends, because a removed element cannot animate.
 function closeEditor() {
-    overlayEl?.remove();
+    const el = overlayEl;
+    if (!el) return;
     overlayEl = null;
     pendingApply = null;
+    el.dataset.away = "";
+    removeAfterDeparture(el, el.querySelector(".cfg-modal"));
 }
 
 export function openConfigEditor() {
@@ -255,15 +264,14 @@ export function openConfigEditor() {
     overlayEl = document.createElement("div");
     overlayEl.className = "cfg-overlay";
     overlayEl.innerHTML = `
-        <div class="cfg-modal">
+        <div class="cfg-scrim"></div>
+        <div class="cfg-modal om-glass" role="dialog" aria-label="Configuration">
             <div class="cfg-header">
-                <span class="cfg-title">// CONFIG EDITOR</span>
-                <div class="cfg-header-actions">
-                    <button class="cfg-btn-ghost" id="cfg-import">IMPORT</button>
-                    <button class="cfg-btn-ghost" id="cfg-export">EXPORT</button>
-                    <button class="cfg-btn-ghost" id="cfg-format">FORMAT</button>
-                    <input type="file" id="cfg-file" accept="application/json,.json" hidden />
-                </div>
+                <span class="cfg-title">Configuration</span>
+                <button class="cfg-btn om-chip" id="cfg-import">Import</button>
+                <button class="cfg-btn om-chip" id="cfg-export">Export</button>
+                <button class="cfg-btn om-chip" id="cfg-format">Format</button>
+                <input type="file" id="cfg-file" accept="application/json,.json" hidden />
             </div>
             <div class="cfg-editor-wrap">
                 <div class="cfg-gutter" aria-hidden="true"></div>
@@ -274,11 +282,9 @@ export function openConfigEditor() {
                 </div>
             </div>
             <div class="cfg-footer">
-                <span class="cfg-hint">⌘↩ apply &nbsp;·&nbsp; esc close</span>
-                <div class="cfg-actions">
-                    <button class="cfg-btn primary" id="cfg-apply">APPLY</button>
-                    <button class="cfg-btn" id="cfg-close">CLOSE</button>
-                </div>
+                <span class="cfg-hint">⌘↩ Apply · Esc Close</span>
+                <button class="cfg-btn om-chip" id="cfg-close">Close</button>
+                <button class="cfg-btn primary om-chip" id="cfg-apply">Apply</button>
             </div>
         </div>
     `;
@@ -412,7 +418,7 @@ export function openConfigEditor() {
 
     overlayEl.querySelector("#cfg-apply").addEventListener("click", apply);
     overlayEl.querySelector("#cfg-close").addEventListener("click", closeEditor);
-    overlayEl.addEventListener("mousedown", (e) => { if (e.target === overlayEl) closeEditor(); });
+    overlayEl.querySelector(".cfg-scrim").addEventListener("mousedown", closeEditor);
 
     requestAnimationFrame(() => textarea.focus());
 }

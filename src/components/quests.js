@@ -4,6 +4,8 @@ import { Panel } from "./panel.js";
 import { createDraggable } from "./draggable.js";
 import { getConfig } from "../config-store.js";
 import { renderHistory } from "./tasks-history.js";
+import { openSheet } from "./sheet.js";
+import { Icon } from "./icons.js";
 const config = getConfig();
 
 const css = `
@@ -12,76 +14,74 @@ const css = `
     grid-row: 1 / 3;
 }
 
-.quests-progress {
-    font-size: 0.6rem;
-    color: var(--dim);
-    letter-spacing: 0;
+/*
+ * A quest is a row of a grouped list: the round check Horah marks a finished
+ * task with, the words, and the streak at the far end. The rule between two
+ * rows starts where the words do.
+ */
+.quest-list {
+    --rule-inset: 40px;
+    --rule-end: 8px;
 }
 
 .quest-item {
     display: flex;
     align-items: center;
-    gap: 7px;
-    font-size: 0.66rem;
-    padding: 4px 0;
-    border-bottom: 1px solid var(--border);
+    gap: 10px;
+    min-height: 40px;
+    padding: 6px 8px;
+    margin: 0 -8px;
+    border-radius: var(--radius-group);
+    font-size: var(--text-subhead);
+    line-height: 1.3;
     user-select: none;
     cursor: grab;
-    transition: all 0.15s, filter 0.2s;
-}
-
-body.quests-private .quest-item {
-    filter: blur(6px);
-    cursor: default;
-}
-
-body.quests-private .quest-item:hover {
-    color: inherit;
-}
-
-body.quests-private .quest-check {
-    cursor: default;
-}
-
-body.quests-private .quest-check:hover {
-    color: var(--dim);
-}
-
-body.quests-private .quest-label a {
-    pointer-events: none;
-    cursor: default;
-}
-
-body.quests-private .quest-label a:hover {
-    color: inherit;
-}
-
-.quest-item:last-child {
-    border-bottom: none;
-}
-
-.quest-item:hover {
-    color: var(--accent);
+    transition: background var(--dur-fast), filter var(--dur-base) var(--ease-gentle);
 }
 
 .quest-check {
     flex-shrink: 0;
-    color: var(--dim);
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1.5px solid var(--label-3);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--on-accent);
     cursor: pointer;
-    transition: color 0.2s;
+    transition:
+        background var(--dur-fast) var(--ease-gentle),
+        border-color var(--dur-fast) var(--ease-gentle),
+        transform 0.14s cubic-bezier(0.3, 0.9, 0.3, 1);
 }
 
-.quest-check:hover {
-    color: var(--accent);
+.quest-check .icon {
+    opacity: 0;
+    scale: 0.6;
+    transition: opacity var(--dur-fast), scale var(--dur-base) var(--ease-spring);
+}
+
+.quest-check:active {
+    transform: scale(0.9);
 }
 
 .quest-item.done .quest-check {
-    color: var(--accent);
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.quest-item.done .quest-check .icon {
+    opacity: 1;
+    scale: 1;
 }
 
 .quest-label {
     flex: 1;
-    line-height: 1.3;
+    min-width: 0;
+    color: var(--color-text);
+    transition: color var(--dur-fast);
 }
 
 .quest-label a {
@@ -89,191 +89,88 @@ body.quests-private .quest-label a:hover {
     text-decoration: none;
 }
 
-.quest-label a:hover {
-    color: var(--accent);
-}
-
 .quest-item.done .quest-label {
-    color: var(--dim);
-    text-decoration: line-through;
+    color: var(--label-3);
 }
 
-.quest-item.done .quest-label a {
-    border-bottom: none;
-}
-
+/* The glyph carries the colour; the figure stays on the text tokens. */
 .quest-streak {
     flex-shrink: 0;
-    font-size: 0.56rem;
-    color: var(--accent3);
-}
-
-.quest-streak.none {
-    color: var(--dim);
-}
-
-.quests-titlegroup {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 3px;
+    font-size: var(--text-footnote);
+    color: var(--label-2);
+    font-variant-numeric: tabular-nums;
 }
 
-.quests-maximize {
-    background: transparent;
-    border: none;
-    color: var(--dim);
-    cursor: pointer;
-    padding: 0 2px;
-    line-height: 0;
-    transition: color 0.15s;
+.quest-streak .icon {
+    color: var(--cal-orange);
 }
-.quests-maximize:hover { color: var(--accent); }
+
+.quest-streak.none,
+.quest-streak.none .icon {
+    color: var(--label-4);
+}
+
+@media (hover: hover) {
+    .quest-check:hover {
+        border-color: var(--color-accent);
+    }
+
+    .quest-label a:hover {
+        color: var(--color-accent);
+    }
+}
+
+/* ── Privacy: the words are blurred and nothing answers a press ── */
+body.quests-private .quest-item {
+    filter: blur(6px);
+    cursor: default;
+}
+
+body.quests-private .quest-item,
+body.quests-private .quest-item:hover,
+body.quests-private .quest-item:active {
+    background: transparent;
+}
+
+body.quests-private .quest-check {
+    cursor: default;
+    pointer-events: none;
+}
+
+body.quests-private .quest-label a {
+    pointer-events: none;
+    cursor: default;
+}
+
+.quests-privacy .icon-off,
+.quests-privacy.active .icon-on {
+    display: none;
+}
+
+.quests-privacy.active .icon-off {
+    display: block;
+}
+
+.quests-privacy.active {
+    color: var(--color-accent);
+}
+
 .quests-maximize.disabled {
     opacity: 0.35;
     cursor: default;
     pointer-events: none;
 }
-.quests-maximize.disabled:hover { color: var(--dim); }
 
-.quests-privacy {
-    background: transparent;
-    border: none;
-    color: var(--dim);
-    cursor: pointer;
-    padding: 0 2px;
-    line-height: 0;
-    position: relative;
-    transition: color 0.15s;
-}
-.quests-privacy:hover { color: var(--accent); }
-.quests-privacy.active { color: var(--accent3); }
-.quests-privacy.active::after {
-    content: "";
-    position: absolute;
-    left: 1px;
-    right: 1px;
-    top: 50%;
-    height: 1px;
-    background: currentColor;
-    transform: rotate(-45deg);
-}
-
-/* ── Fullscreen expanded view ───────────────────────────── */
-.qx-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: var(--bg);
-    display: flex;
-    flex-direction: column;
-    padding: 18px 22px;
-    overflow: hidden;
-    animation: qx-power-on 420ms steps(1, end);
-}
-
-.qx-overlay.qx-closing {
-    animation: qx-power-off 140ms ease-in forwards;
-}
-
-.qx-overlay::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 5;
-    background: repeating-linear-gradient(
-        to bottom,
-        rgba(74, 222, 128, 0.035) 0px,
-        rgba(74, 222, 128, 0.035) 1px,
-        transparent 1px,
-        transparent 3px
-    );
-    mix-blend-mode: overlay;
-}
-
-.qx-sweep {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 35%;
-    z-index: 6;
-    pointer-events: none;
-    background: linear-gradient(to bottom, transparent, rgba(74, 222, 128, 0.16), transparent);
-    animation: qx-sweep-move 500ms ease-out forwards;
-}
-
-@keyframes qx-power-on {
-    0%   { opacity: 0; }
-    12%  { opacity: 1; }
-    20%  { opacity: 0.15; }
-    28%  { opacity: 1; }
-    38%  { opacity: 0.3; }
-    50%  { opacity: 1; }
-    100% { opacity: 1; }
-}
-
-@keyframes qx-power-off {
-    to { opacity: 0; }
-}
-
-@keyframes qx-sweep-move {
-    0%   { top: -35%; opacity: 1; }
-    100% { top: 100%; opacity: 0; }
-}
-
-.qx-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 11px;
-    margin-bottom: 14px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1;
-}
-
-.qx-title {
-    color: var(--accent);
-    font-size: 0.8rem;
-    letter-spacing: 0.15em;
-    animation: qx-title-glitch 420ms steps(2, end);
-}
-
-@keyframes qx-title-glitch {
-    0%   { text-shadow: none; }
-    15%  { text-shadow: -2px 0 var(--accent2), 2px 0 var(--accent3); }
-    30%  { text-shadow: 2px 0 var(--accent2), -2px 0 var(--accent3); }
-    45%  { text-shadow: -1px 0 var(--accent2), 1px 0 var(--accent3); }
-    60%  { text-shadow: 1px 0 var(--accent2), -1px 0 var(--accent3); }
-    100% { text-shadow: none; }
-}
-
-.qx-close {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
-    padding: 3px 10px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--dim);
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.qx-close:hover { color: var(--text); border-color: var(--text); }
-
+/* ── The sheet: today beside the history ───────────────── */
 .qx-body {
     flex: 1;
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(260px, 360px) 1fr;
-    gap: 26px;
-    position: relative;
-    z-index: 1;
+    grid-template-columns: minmax(300px, 420px) 1fr;
+    gap: 24px;
 }
 
 .qx-col {
@@ -282,28 +179,21 @@ body.quests-private .quest-label a:hover {
     flex-direction: column;
 }
 
-.qx-col-title {
-    font-size: 0.62rem;
-    letter-spacing: 0.12em;
-    color: var(--dim);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 7px;
-    margin-bottom: 10px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
 .qx-col-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding-right: 6px;
 }
 
-/* Larger, roomier task rows inside the expanded view */
-.qx-col .quest-item { font-size: 0.72rem; padding: 6px 0; }
+.qx-col-body > .sheet-cell {
+    padding: 4px 16px;
+}
+
+/* Roomier rows in the sheet: the body size, as a list on iOS is set. */
+.qx-col .quest-item {
+    min-height: 46px;
+    font-size: var(--text-body);
+}
 `;
 
 const QUESTS_KEY = "quests";
@@ -492,10 +382,11 @@ function applyPrivacyMode() {
     document.querySelectorAll(".quests-privacy").forEach((btn) => {
         btn.classList.toggle("active", privacyMode);
         btn.title = privacyMode ? "Show quests" : "Hide quests";
+        btn.setAttribute("aria-pressed", String(privacyMode));
     });
     document.querySelectorAll(".quests-maximize").forEach((btn) => {
         btn.classList.toggle("disabled", privacyMode);
-        btn.title = privacyMode ? "Expand disabled while hidden" : "Expand";
+        btn.title = privacyMode ? "Expand disabled while hidden" : "Expand (Q)";
     });
 }
 
@@ -515,7 +406,7 @@ const drag = createDraggable({
 
 function updateProgress() {
     const done = quests.filter((q) => q.done).length;
-    const text = `[${done}/${quests.length}]`;
+    const text = `${done}/${quests.length}`;
     document.querySelectorAll(".quests-progress").forEach((el) => { el.textContent = text; });
 }
 
@@ -560,16 +451,18 @@ function renderQuests() {
         const actualIdx = quests.indexOf(q);
         const s = getStreak(q.label);
         return html`
-            <div class="quest-item ${q.done ? "done" : ""} ${drag.classFor(displayIdx)}"
+            <div class="quest-item om-list-row ${q.done ? "done" : ""} ${drag.classFor(displayIdx)}"
                  draggable=${privacyMode ? "false" : "true"}
                  @dragstart=${(e) => { if (privacyMode) { e.preventDefault(); return; } drag.start(e, displayIdx); }}
                  @dragend=${(e) => drag.end(e)}
                  @dragover=${(e) => drag.over(e, displayIdx)}
                  @drop=${(e) => drag.drop(e, displayIdx)}
                  @click=${(e) => { if (drag.active) e.preventDefault(); }}>
-                <span class="quest-check" @click=${(e) => { e.stopPropagation(); toggle(actualIdx); }}>${q.done ? "[x]" : "[ ]"}</span>
+                <button class="quest-check" role="checkbox" aria-checked=${q.done ? "true" : "false"}
+                        aria-label=${q.label} tabindex=${privacyMode ? "-1" : "0"}
+                        @click=${(e) => { e.stopPropagation(); toggle(actualIdx); }}>${Icon("check", { size: 13, stroke: 3.2 })}</button>
                 <span class="quest-label">${q.url ? html`<a href=${q.url} target="_blank">${q.label}</a>` : q.label}</span>
-                <span class="quest-streak ${s === 0 ? "none" : ""}">${s > 0 ? `${s}d` : "0d"}</span>
+                <span class="quest-streak ${s === 0 ? "none" : ""}" title=${`${s}-day streak`}>${Icon("flame", { size: 13, stroke: 2 })}${s}</span>
             </div>
         `;
     })}`;
@@ -579,10 +472,10 @@ function renderQuests() {
 }
 
 // ── Fullscreen expanded view (tasks + history) ──────────────
-let expandedEl = null;
+let expanded = null;
 
 function refreshExpandedHistory() {
-    const body = expandedEl?.querySelector(".qx-history-body");
+    const body = expanded?.sheet.querySelector(".qx-history-body");
     if (body) renderHistory(body);
 }
 
@@ -591,55 +484,57 @@ function onExpandedKey(e) {
 }
 
 function closeExpanded() {
-    if (!expandedEl) return;
-    const el = expandedEl;
-    expandedEl = null;
-    document.body.classList.remove("qx-fullscreen-open");
-    document.removeEventListener("keydown", onExpandedKey);
-    el.classList.add("qx-closing");
-    el.addEventListener("animationend", () => el.remove(), { once: true });
+    if (!expanded) return;
+    expanded.close();
+    expanded = null;
     renderQuests();
 }
 
+// The same button on the panel and on the sheet, in whichever furniture it sits on.
+function PrivacyButton(cls) {
+    return html`
+        <button class="quests-privacy ${cls} om-icon" title="Hide quests" aria-pressed="false" @click=${togglePrivacy}>
+            ${Icon("eye", { cls: "icon-on" })}${Icon("eyeOff", { cls: "icon-off" })}
+        </button>
+    `;
+}
+
 export function openQuestsExpanded() {
-    if (expandedEl) { closeExpanded(); return; }
+    if (expanded) { closeExpanded(); return; }
     if (privacyMode) return;
 
-    expandedEl = document.createElement("div");
-    expandedEl.className = "qx-overlay";
-    expandedEl.innerHTML = `
-        <div class="qx-sweep"></div>
-        <div class="qx-header">
-            <span class="qx-title">// QUESTS</span>
-            <span class="quests-titlegroup">
-                <button class="quests-privacy" title="Hide quests">
-                    <svg viewBox="0 0 16 16" width="12" height="12" fill="none"
-                         stroke="currentColor" stroke-width="1.6"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" />
-                        <circle cx="8" cy="8" r="2" />
-                    </svg>
+    expanded = openSheet({
+        className: "qx-sheet",
+        bodyClass: "qx-fullscreen-open",
+        onKey: onExpandedKey,
+        onDismiss: closeExpanded,
+    });
+    render(html`
+        <div class="sheet-bar">
+            <div class="sheet-titlegroup">
+                <span class="sheet-title">Quests</span>
+                <span class="sheet-sub quests-progress"></span>
+            </div>
+            <div class="sheet-actions">
+                ${PrivacyButton("sheet-btn")}
+                <button class="sheet-btn om-icon" title="Minimize (Esc)" aria-label="Minimize" @click=${closeExpanded}>
+                    ${Icon("minimize", { size: 17, stroke: 2 })}
                 </button>
-                <button class="qx-close" id="qx-close">MINIMIZE ⤡</button>
-            </span>
+            </div>
         </div>
         <div class="qx-body">
             <div class="qx-col">
-                <div class="qx-col-title">TODAY <span class="quests-progress"></span></div>
-                <div class="qx-col-body"><div class="quest-list"></div></div>
+                <div class="sheet-caption">Today</div>
+                <div class="qx-col-body scroll-contain">
+                    <div class="sheet-cell"><div class="quest-list om-wbs"></div></div>
+                </div>
             </div>
             <div class="qx-col">
-                <div class="qx-col-title">HISTORY</div>
-                <div class="qx-col-body qx-history-body"></div>
+                <div class="sheet-caption">History</div>
+                <div class="qx-col-body qx-history-body scroll-contain"></div>
             </div>
         </div>
-    `;
-    document.body.appendChild(expandedEl);
-    document.body.classList.add("qx-fullscreen-open");
-    expandedEl.querySelector("#qx-close").addEventListener("click", closeExpanded);
-    expandedEl.querySelector(".quests-privacy").addEventListener("click", togglePrivacy);
-    expandedEl.querySelector(".qx-sweep").addEventListener("animationend", (e) => e.target.remove(), { once: true });
-    document.addEventListener("keydown", onExpandedKey);
+    `, expanded.sheet);
 
     renderQuests();
     refreshExpandedHistory();
@@ -655,30 +550,19 @@ export function QuestsPanel() {
     return Panel(
         {
             title: html`
-                <span class="quests-titlegroup">
-                    <span>// QUESTS</span>
-                    <span class="quests-progress">[${done}/${quests.length}]</span>
+                <span class="panel-heading">
+                    <span>Quests</span>
+                    <span class="panel-count quests-progress">${done}/${quests.length}</span>
                 </span>
-                <span class="quests-titlegroup">
-                    <button class="quests-privacy" title="Hide quests" @click=${togglePrivacy}>
-                        <svg viewBox="0 0 16 16" width="11" height="11" fill="none"
-                             stroke="currentColor" stroke-width="1.6"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" />
-                            <circle cx="8" cy="8" r="2" />
-                        </svg>
-                    </button>
-                    <button class="quests-maximize" title="Expand" @click=${openQuestsExpanded}>
-                        <svg viewBox="0 0 16 16" width="11" height="11" fill="none"
-                             stroke="currentColor" stroke-width="1.6"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
-                        </svg>
+                <span class="panel-actions">
+                    ${PrivacyButton("panel-btn")}
+                    <button class="quests-maximize panel-btn om-icon" title="Expand (Q)" @click=${openQuestsExpanded}>
+                        ${Icon("maximize", { size: 16 })}
                     </button>
                 </span>
             `,
             className: "quests-panel",
         },
-        html`<div class="quest-list"></div>`,
+        html`<div class="quest-list om-wbs"></div>`,
     );
 }

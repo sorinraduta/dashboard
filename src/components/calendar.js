@@ -1,7 +1,15 @@
 import { html, render } from "../vendor/lit-html.js";
 import { injectStyles } from "./styles.js";
 import { Panel } from "./panel.js";
+import { openSheet } from "./sheet.js";
+import { Icon } from "./icons.js";
 
+/*
+ * The month the way Horah draws one (`MonthView`): a ruled grid where the 1 px
+ * gap *is* the line, today a filled accent disc, the week you are in tinted a
+ * breath of the accent and its number named in it. Every other date is a plain
+ * figure, the weekend and the days either side of the month quieter.
+ */
 const css = `
 .calendar-panel {
     grid-column: 2;
@@ -12,30 +20,6 @@ const css = `
     container-name: calendar;
 }
 
-.cal-titlegroup {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.cal-clock {
-    font-size: 0.72rem;
-    color: var(--accent);
-    letter-spacing: 0.1em;
-    font-variant-numeric: tabular-nums;
-}
-
-.cal-maximize {
-    background: transparent;
-    border: none;
-    color: var(--dim);
-    cursor: pointer;
-    padding: 0 2px;
-    line-height: 0;
-    transition: color 0.15s;
-}
-.cal-maximize:hover { color: var(--accent); }
-
 .cal-grid {
     flex: 1;
     min-height: 0;
@@ -43,68 +27,93 @@ const css = `
     flex-direction: column;
 }
 
+.cal-head,
+.cal-days {
+    display: grid;
+    grid-template-columns: 2.2em repeat(7, 1fr);
+}
+
+.cal-head {
+    flex-shrink: 0;
+    padding-bottom: 6px;
+}
+
 .cal-days {
     flex: 1;
     min-height: 0;
-    display: grid;
-    grid-template-columns: 2em repeat(7, 1fr);
-    grid-template-rows: auto repeat(6, 1fr);
+    grid-template-rows: repeat(6, 1fr);
     gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 5px;
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+    border-radius: var(--radius-cell);
     overflow: hidden;
 }
 
-.cal-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: clamp(0.62rem, 2.4cqi, 0.85rem);
-    color: var(--text);
-    background: var(--panel-bg);
-}
-
 .cal-label {
-    font-size: clamp(0.5rem, 1.8cqi, 0.6rem);
-    color: var(--dim);
-    letter-spacing: 0.08em;
-    background: color-mix(in srgb, var(--border) 40%, var(--panel-bg));
-    padding: 5px 0;
+    display: grid;
+    place-items: center;
+    font-size: var(--text-caption-2);
+    font-weight: 590;
+    color: color-mix(in srgb, var(--color-text) 34%, transparent);
 }
 
-.cal-cell.weekend {
-    color: var(--dim);
-}
-
-.cal-cell.adjacent {
-    color: color-mix(in srgb, var(--dim) 45%, var(--panel-bg));
-}
-
-.cal-cell.today {
-    background: color-mix(in srgb, var(--accent) 16%, var(--panel-bg));
-    color: var(--accent);
+.cal-week {
+    display: grid;
+    place-items: center;
+    background: var(--color-surface);
+    font-size: var(--text-caption-2);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+    color: color-mix(in srgb, var(--color-text) 34%, transparent);
+    font-variant-numeric: tabular-nums;
 }
 
-.cal-cell.day {
-    transition: background 0.1s, color 0.1s;
+.cal-week.current {
+    font-weight: 700;
+    color: var(--color-accent);
 }
 
-.cal-cell.day:hover {
-    background: color-mix(in srgb, var(--accent) 12%, var(--panel-bg));
-    color: var(--accent);
-    cursor: default;
+.cal-cell {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 0;
+    background: var(--color-surface);
+    transition: background var(--dur-fast);
 }
 
-.cal-cell.day.today:hover {
-    background: color-mix(in srgb, var(--accent) 26%, var(--panel-bg));
+.cal-cell.current-week {
+    background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface));
 }
 
-@container calendar (max-width: 340px) {
-    .cal-label {
-        letter-spacing: 0;
+.cal-num {
+    width: 1.9em;
+    height: 1.9em;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-pill);
+    font-size: clamp(var(--text-caption-1), 3cqi, var(--text-callout));
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, var(--color-text) 56%, transparent);
+}
+
+.cal-cell.weekend .cal-num {
+    color: color-mix(in srgb, var(--color-text) 38%, transparent);
+}
+
+.cal-cell.adjacent .cal-num {
+    font-weight: 400;
+    color: color-mix(in srgb, var(--color-text) 26%, transparent);
+}
+
+.cal-cell.today .cal-num {
+    background: var(--color-accent);
+    color: var(--on-accent);
+    font-weight: 700;
+}
+
+@media (hover: hover) {
+    .cal-cell:hover {
+        background: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
     }
 }
 
@@ -112,187 +121,61 @@ const css = `
     .calendar-panel {
         grid-column: 1 / -1;
         grid-row: auto;
-        padding: 18px 12px;
         min-height: 260px;
     }
 }
 
-/* ── Fullscreen expanded view ───────────────────────────── */
-.cx-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: var(--bg);
-    display: flex;
-    flex-direction: column;
-    padding: 18px 22px;
-    overflow: hidden;
-    animation: cx-power-on 420ms steps(1, end);
-}
-
-.cx-overlay.cx-closing {
-    animation: cx-power-off 140ms ease-in forwards;
-}
-
-.cx-overlay::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 5;
-    background: repeating-linear-gradient(
-        to bottom,
-        rgba(74, 222, 128, 0.035) 0px,
-        rgba(74, 222, 128, 0.035) 1px,
-        transparent 1px,
-        transparent 3px
-    );
-    mix-blend-mode: overlay;
-}
-
-.cx-sweep {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 35%;
-    z-index: 6;
-    pointer-events: none;
-    background: linear-gradient(to bottom, transparent, rgba(74, 222, 128, 0.16), transparent);
-    animation: cx-sweep-move 500ms ease-out forwards;
-}
-
-@keyframes cx-power-on {
-    0%   { opacity: 0; }
-    12%  { opacity: 1; }
-    20%  { opacity: 0.15; }
-    28%  { opacity: 1; }
-    38%  { opacity: 0.3; }
-    50%  { opacity: 1; }
-    100% { opacity: 1; }
-}
-
-@keyframes cx-power-off {
-    to { opacity: 0; }
-}
-
-@keyframes cx-sweep-move {
-    0%   { top: -35%; opacity: 1; }
-    100% { top: 100%; opacity: 0; }
-}
-
-.cx-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 11px;
-    margin-bottom: 14px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1;
-}
-
-.cx-titlegroup {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.cx-title {
-    color: var(--accent);
-    font-size: 0.8rem;
-    letter-spacing: 0.15em;
-    animation: cx-title-glitch 420ms steps(2, end);
-}
-
-@keyframes cx-title-glitch {
-    0%   { text-shadow: none; }
-    15%  { text-shadow: -2px 0 var(--accent2), 2px 0 var(--accent3); }
-    30%  { text-shadow: 2px 0 var(--accent2), -2px 0 var(--accent3); }
-    45%  { text-shadow: -1px 0 var(--accent2), 1px 0 var(--accent3); }
-    60%  { text-shadow: 1px 0 var(--accent2), -1px 0 var(--accent3); }
-    100% { text-shadow: none; }
-}
-
-.cx-clock {
-    font-size: 0.72rem;
-    color: var(--dim);
-    letter-spacing: 0.1em;
-    font-variant-numeric: tabular-nums;
-}
-
+/* ── The sheet: the month at full size ─────────────────── */
 .cx-nav {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
-
-.cx-nav-btn {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.7rem;
-    padding: 3px 8px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--dim);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.cx-nav-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 .cx-month-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
-    color: var(--text);
-    min-width: 11ch;
+    min-width: 10ch;
     text-align: center;
+    font-size: var(--text-headline);
+    font-weight: 590;
+    color: var(--color-text);
 }
-
-.cx-close {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
-    padding: 3px 10px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--dim);
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.cx-close:hover { color: var(--text); border-color: var(--text); }
 
 .cx-body {
     flex: 1;
     min-height: 0;
     display: flex;
-    justify-content: center;
-    position: relative;
-    z-index: 1;
+    flex-direction: column;
+    padding: 12px 12px 12px;
 }
 
-.cx-days {
-    flex: 1;
-    width: 100%;
-    display: grid;
+.cx-body .cal-head {
     grid-template-columns: 3.2em repeat(7, 1fr);
-    grid-template-rows: auto repeat(6, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    overflow: hidden;
+    padding-bottom: 8px;
 }
 
-.cx-days .cal-cell {
-    font-size: clamp(0.9rem, 2.4vw, 2.4rem);
+.cx-body .cal-label {
+    font-size: var(--text-footnote);
 }
 
-.cx-days .cal-label {
-    font-size: clamp(0.6rem, 1vw, 0.75rem);
+.cx-body .cal-days {
+    grid-template-columns: 3.2em repeat(7, 1fr);
+}
+
+/* Level with the dates: the centre of a 1.9em disc at the title-3 size, 8 px down. */
+.cx-body .cal-week {
+    font-size: var(--text-footnote);
+    place-items: start center;
+    padding-top: 19px;
+}
+
+/* A big cell carries its date at the top, as every month grid does. */
+.cx-body .cal-cell {
+    place-items: start center;
+    padding-top: 8px;
+}
+
+.cx-body .cal-num {
+    font-size: var(--text-title-3);
 }
 `;
 
@@ -339,27 +222,36 @@ function buildMonthWeeks(year, month) {
 }
 
 function monthLabel(year, month) {
-    return new Date(year, month, 1)
-        .toLocaleDateString(undefined, { month: "long", year: "numeric" })
-        .toUpperCase();
+    return new Date(year, month, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
+function dayKey(d) {
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+// The weekday letters over the grid, and the six ruled weeks under them.
 function monthGrid(year, month) {
     const weeks = buildMonthWeeks(year, month);
-    const now = new Date();
-    const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+    const todayKey = dayKey(new Date());
 
     return html`
-        <div class="cal-cell cal-label"></div>
-        ${WEEKDAY_SHORT.map((w) => html`<div class="cal-cell cal-label">${w}</div>`)}
-        ${weeks.map((week) => html`
-            <div class="cal-cell cal-label">${week.weekNumber}</div>
-            ${week.days.map(({ date, adjacent }, weekday) => {
-                const isWeekend = weekday === 5 || weekday === 6;
-                const isToday = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` === todayKey;
-                return html`<div class="cal-cell day ${isWeekend ? "weekend" : ""} ${adjacent ? "adjacent" : ""} ${isToday ? "today" : ""}">${date.getDate()}</div>`;
+        <div class="cal-head">
+            <div class="cal-label"></div>
+            ${WEEKDAY_SHORT.map((w) => html`<div class="cal-label">${w}</div>`)}
+        </div>
+        <div class="cal-days">
+            ${weeks.map((week) => {
+                const current = week.days.some(({ date }) => dayKey(date) === todayKey);
+                return html`
+                    <div class="cal-week ${current ? "current" : ""}">${week.weekNumber}</div>
+                    ${week.days.map(({ date, adjacent }, weekday) => {
+                        const isWeekend = weekday === 5 || weekday === 6;
+                        const isToday = dayKey(date) === todayKey;
+                        return html`<div class="cal-cell ${isWeekend ? "weekend" : ""} ${adjacent ? "adjacent" : ""} ${isToday ? "today" : ""} ${current ? "current-week" : ""}"><span class="cal-num">${date.getDate()}</span></div>`;
+                    })}
+                `;
             })}
-        `)}
+        </div>
     `;
 }
 
@@ -369,15 +261,15 @@ function tick() {
 }
 
 // ── Fullscreen expanded view ───────────────────────────── */
-let expandedEl = null;
+let expanded = null;
 let viewYear = null;
 let viewMonth = null;
 
 function renderExpandedGrid() {
-    if (!expandedEl) return;
-    const days = expandedEl.querySelector(".cx-days");
-    if (days) render(monthGrid(viewYear, viewMonth), days);
-    const label = expandedEl.querySelector(".cx-month-label");
+    if (!expanded) return;
+    const body = expanded.sheet.querySelector(".cx-body");
+    if (body) render(monthGrid(viewYear, viewMonth), body);
+    const label = expanded.sheet.querySelector(".cx-month-label");
     if (label) label.textContent = monthLabel(viewYear, viewMonth);
 }
 
@@ -402,51 +294,48 @@ function onExpandedKey(e) {
 }
 
 function closeExpanded() {
-    if (!expandedEl) return;
-    const el = expandedEl;
-    expandedEl = null;
-    document.body.classList.remove("cx-fullscreen-open");
-    document.removeEventListener("keydown", onExpandedKey);
-    el.classList.add("cx-closing");
-    el.addEventListener("animationend", () => el.remove(), { once: true });
+    if (!expanded) return;
+    expanded.close();
+    expanded = null;
 }
 
 export function openCalendarExpanded() {
-    if (expandedEl) { closeExpanded(); return; }
+    if (expanded) { closeExpanded(); return; }
 
     const now = new Date();
     viewYear = now.getFullYear();
     viewMonth = now.getMonth();
 
-    expandedEl = document.createElement("div");
-    expandedEl.className = "cx-overlay";
-    expandedEl.innerHTML = `
-        <div class="cx-sweep"></div>
-        <div class="cx-header">
-            <div class="cx-titlegroup">
-                <span class="cx-title">// CALENDAR</span>
-                <span class="cx-clock cal-clock">${formatClock(now)}</span>
+    expanded = openSheet({
+        className: "cx-sheet",
+        bodyClass: "cx-fullscreen-open",
+        onKey: onExpandedKey,
+        onDismiss: closeExpanded,
+    });
+    render(html`
+        <div class="sheet-bar">
+            <div class="sheet-titlegroup">
+                <span class="sheet-title">Calendar</span>
+                <span class="sheet-sub cal-clock">${formatClock(now)}</span>
             </div>
             <div class="cx-nav">
-                <button class="cx-nav-btn" id="cx-prev">‹</button>
+                <button class="sheet-btn om-icon" title="Previous month (←)" aria-label="Previous month" @click=${() => shiftMonth(-1)}>
+                    ${Icon("chevronLeft", { size: 18, stroke: 2.2 })}
+                </button>
                 <span class="cx-month-label">${monthLabel(viewYear, viewMonth)}</span>
-                <button class="cx-nav-btn" id="cx-next">›</button>
-                <button class="cx-nav-btn" id="cx-today">TODAY</button>
+                <button class="sheet-btn om-icon" title="Next month (→)" aria-label="Next month" @click=${() => shiftMonth(1)}>
+                    ${Icon("chevronRight", { size: 18, stroke: 2.2 })}
+                </button>
+                <button class="sheet-btn sheet-word om-icon" @click=${goToday}>Today</button>
             </div>
-            <button class="cx-close" id="cx-close">MINIMIZE ⤡</button>
+            <div class="sheet-actions">
+                <button class="sheet-btn om-icon" title="Minimize (Esc)" aria-label="Minimize" @click=${closeExpanded}>
+                    ${Icon("minimize", { size: 17, stroke: 2 })}
+                </button>
+            </div>
         </div>
-        <div class="cx-body">
-            <div class="cx-days"></div>
-        </div>
-    `;
-    document.body.appendChild(expandedEl);
-    document.body.classList.add("cx-fullscreen-open");
-    expandedEl.querySelector("#cx-close").addEventListener("click", closeExpanded);
-    expandedEl.querySelector("#cx-prev").addEventListener("click", () => shiftMonth(-1));
-    expandedEl.querySelector("#cx-next").addEventListener("click", () => shiftMonth(1));
-    expandedEl.querySelector("#cx-today").addEventListener("click", goToday);
-    expandedEl.querySelector(".cx-sweep").addEventListener("animationend", (e) => e.target.remove(), { once: true });
-    document.addEventListener("keydown", onExpandedKey);
+        <div class="cx-body sheet-cell"></div>
+    `, expanded.sheet);
 
     renderExpandedGrid();
 }
@@ -463,26 +352,18 @@ export function CalendarPanel() {
     return Panel(
         {
             title: html`
-                <span class="cal-titlegroup">
-                    <span>// CALENDAR</span>
-                    <span class="cal-clock">${formatClock(now)}</span>
+                <span class="panel-heading">
+                    <span>Calendar</span>
+                    <span class="panel-count cal-clock">${formatClock(now)}</span>
                 </span>
-                <button class="cal-maximize" title="Expand" @click=${openCalendarExpanded}>
-                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none"
-                         stroke="currentColor" stroke-width="1.6"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
-                    </svg>
-                </button>
+                <span class="panel-actions">
+                    <button class="panel-btn om-icon" title="Expand (L)" @click=${openCalendarExpanded}>
+                        ${Icon("maximize", { size: 16 })}
+                    </button>
+                </span>
             `,
             className: "calendar-panel",
         },
-        html`
-            <div class="cal-grid">
-                <div class="cal-days">
-                    ${monthGrid(now.getFullYear(), now.getMonth())}
-                </div>
-            </div>
-        `,
+        html`<div class="cal-grid">${monthGrid(now.getFullYear(), now.getMonth())}</div>`,
     );
 }

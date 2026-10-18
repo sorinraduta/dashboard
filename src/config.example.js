@@ -31,6 +31,12 @@ export default {
                 check: "https://example.com",
                 icon: "web",
             },
+            {
+                name: "horah.app",
+                url: "https://horah.app",
+                check: "https://horah.app",
+                icon: "horah",
+            },
         ],
         local: [],
     },

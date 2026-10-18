@@ -10,40 +10,34 @@ const css = `
 
 .wisdom-body {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 10px;
-}
-
-.wisdom-loading {
-    font-size: 0.67rem;
-    color: var(--dim);
-    line-height: 1.6;
+    gap: 8px;
 }
 
 .wisdom-quote {
-    font-size: 0.7rem;
-    color: var(--text);
-    line-height: 1.6;
-    font-style: italic;
+    font-size: var(--text-subhead);
+    line-height: 1.4;
+    color: var(--color-text);
 }
 
 .wisdom-author {
-    font-size: 0.63rem;
-    color: var(--accent);
+    font-size: var(--text-footnote);
+    color: var(--label-2);
     text-align: right;
 }
 
 .wisdom-author a {
-    color: var(--accent);
+    color: var(--color-accent);
     text-decoration: none;
-    transition: color 0.2s;
 }
 
-.wisdom-author a:hover {
-    color: var(--dim);
-    text-decoration: underline;
+@media (hover: hover) {
+    .wisdom-author a:hover {
+        text-decoration: underline;
+    }
 }
 `;
 
@@ -60,7 +54,7 @@ export function WisdomPanel() {
         const authorEl = document.getElementById("wisdom-author");
         const loadingEl = document.getElementById("wisdom-loading");
         if (loadingEl) loadingEl.style.display = "none";
-        if (quoteEl) quoteEl.textContent = `"${data.quote}"`;
+        if (quoteEl) quoteEl.textContent = `“${data.quote}”`;
         if (authorEl) {
             render(
                 html`— <a href="https://duckduckgo.com/?q=${encodeURIComponent(data.author)}" target="_blank" title="Search author">${data.author}</a>`,
@@ -69,10 +63,10 @@ export function WisdomPanel() {
         }
     });
     return Panel(
-        { title: "// WISDOM", className: "wisdom-panel" },
+        { title: "Wisdom", className: "wisdom-panel" },
         html`
             <div class="wisdom-body">
-                <div class="wisdom-loading" id="wisdom-loading">// loading...</div>
+                <div class="panel-note" id="wisdom-loading">Loading…</div>
                 <div class="wisdom-quote" id="wisdom-quote"></div>
                 <div class="wisdom-author" id="wisdom-author"></div>
             </div>

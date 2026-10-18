@@ -13,9 +13,9 @@ import { openConfigEditor, handleEditorKeys } from "./components/config-editor.j
 const css = `
 .dashboard {
     display: grid;
-    grid-template-columns: 300px 1fr 280px;
-    grid-template-rows: repeat(5, 1fr);
-    gap: 8px;
+    grid-template-columns: 320px 1fr 340px;
+    grid-template-rows: repeat(5, minmax(0, 1fr));
+    gap: 12px;
     flex: 1;
     min-height: 0;
 }

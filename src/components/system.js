@@ -20,25 +20,25 @@ const css = `
 }
 
 .lbl {
-    color: var(--dim);
+    color: var(--label-2);
 }
 
 .val {
-    color: var(--text);
+    color: var(--color-text);
 }
 .val.good {
-    color: var(--accent);
+    color: var(--color-accent);
 }
 .val.warn {
-    color: var(--accent3);
+    color: var(--cal-yellow);
 }
 .val.crit {
-    color: var(--accent2);
+    color: var(--red);
 }
 
 .bar {
     height: 4px;
-    background: var(--border);
+    background: var(--fill);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -50,20 +50,20 @@ const css = `
 }
 
 .bar-fill.cpu {
-    background: var(--accent);
+    background: var(--color-accent);
 }
 .bar-fill.mem {
-    background: var(--accent2);
+    background: var(--red);
 }
 .bar-sub {
     font-size: 0.6rem;
-    color: var(--dim);
+    color: var(--label-2);
     margin-top: 3px;
 }
 
 .sys-sep {
     border: none;
-    border-top: 1px solid var(--border);
+    border-top: 0.5px solid var(--hairline);
     margin: 6px 0 8px;
 }
 
@@ -77,11 +77,11 @@ const css = `
 }
 
 .info-lbl {
-    color: var(--dim);
+    color: var(--label-2);
     flex-shrink: 0;
 }
 .info-val {
-    color: var(--text);
+    color: var(--color-text);
     text-align: right;
     word-break: break-all;
 }
@@ -179,7 +179,7 @@ export function SystemPanel() {
     const platform = navigator.userAgentData?.platform || navigator.platform || "—";
 
     return Panel(
-        { title: "// SYSTEM", className: "sys-panel" },
+        { title: "System", className: "sys-panel" },
         html`
             <div class="sys-row">
                 <div class="sys-label-row">

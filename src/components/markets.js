@@ -6,6 +6,11 @@ import { getConfig } from "../config-store.js";
 import { corsFetch } from "../cors-fetch.js";
 const config = getConfig();
 
+/*
+ * A quote is a row of a grouped list, the way the iOS Stocks app sets one:
+ * the symbol, the price in tabular figures, and the day's change in a capsule
+ * of green or red — the colour carried by the capsule, never by the words.
+ */
 const css = `
 .markets-panel {
     grid-column: 1;
@@ -16,68 +21,67 @@ const css = `
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 3px;
     overflow-y: auto;
+    --rule-inset: 8px;
+    --rule-end: 8px;
 }
 
 .market-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    font-size: 0.64rem;
-    padding: 3px 0;
-    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    min-height: 40px;
+    padding: 4px 8px;
+    margin: 0 -8px;
+    border-radius: var(--radius-group);
     text-decoration: none;
     color: inherit;
-    transition: all 0.15s;
     cursor: grab;
 }
 
-.market-item:last-child {
-    border-bottom: none;
-}
-
-.market-item:hover .market-symbol {
-    color: var(--accent);
-}
-
 .market-symbol {
-    color: var(--text);
-    font-weight: normal;
-    min-width: 55px;
-    transition: color 0.2s;
+    flex: 1;
+    min-width: 0;
+    font-size: var(--text-subhead);
+    font-weight: 590;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .market-price {
-    color: var(--text);
+    font-size: var(--text-subhead);
+    color: var(--color-text);
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .market-change {
-    text-align: right;
-    min-width: 58px;
-    font-size: 0.58rem;
+    flex-shrink: 0;
+    min-width: 70px;
+    height: 26px;
+    padding: 0 8px;
+    display: grid;
+    place-items: center end;
+    border-radius: var(--radius-chip);
+    font-size: var(--text-footnote);
+    font-weight: 590;
+    font-variant-numeric: tabular-nums;
+    color: var(--on-gray);
 }
 
 .market-change.up {
-    color: var(--accent);
+    background: var(--green);
 }
 
 .market-change.down {
-    color: var(--accent2);
+    background: var(--red);
 }
 
 .market-change.flat {
-    color: var(--dim);
-}
-
-.markets-loading {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--dim);
-    font-size: 0.68rem;
+    background: var(--fill);
+    color: var(--label-2);
 }
 `;
 
@@ -219,7 +223,7 @@ function renderMarkets() {
                 <a
                     href=${t.url}
                     target="_blank"
-                    class="market-item ${drag.classFor(displayIdx)}"
+                    class="market-item om-list-row ${drag.classFor(displayIdx)}"
                     draggable="true"
                     @dragstart=${(e) => drag.start(e, displayIdx)}
                     @dragend=${(e) => drag.end(e)}
@@ -229,7 +233,7 @@ function renderMarkets() {
                 >
                     <span class="market-symbol">${t.label}</span>
                     <span class="market-price">${price}</span>
-                    <span class="market-change ${cls}">${change}</span>
+                    <span class="market-change ${cls}">${change || "—"}</span>
                 </a>
             `;
         })}`,
@@ -249,10 +253,10 @@ export function MarketsPanel() {
         setInterval(fetchAll, 60000);
     });
     return Panel(
-        { title: "// MARKETS", className: "markets-panel" },
+        { title: "Markets", className: "markets-panel" },
         html`
-            <div class="markets-loading" id="markets-loading">// loading...</div>
-            <div class="markets-list" id="markets-list"></div>
+            <div class="panel-note" id="markets-loading">Loading…</div>
+            <div class="markets-list om-wbs" id="markets-list"></div>
         `,
     );
 }

@@ -1,0 +1,384 @@
+/*
+ * Horah's design system, carried over to the dashboard.
+ *
+ * Every value below is Horah's: the dark palette, radii, type scale, glass and
+ * motion from `horah/packages/design/src/theme.json`, and the material and the
+ * base rules from its `glass.css` and `base.css`. Horah writes those onto the
+ * root from JSON at runtime; the dashboard has no build step, so they are
+ * written out here once. A value changed in Horah is a value to change here.
+ *
+ * Components read the variables, never a literal: no hex, no rgb(), no bare
+ * radius, no duration somebody picked. A colour that is missing is a token
+ * added below, under "Dashboard additions".
+ *
+ * Only the dark palette is carried, because it is the one Horah opens in
+ * (`DEFAULT_DARK`) and the dashboard has no appearance switch of its own.
+ */
+:root {
+    color-scheme: dark;
+
+    /* Font: SF Pro on Apple hardware, Inter everywhere else. */
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Inter", "Inter Variable",
+        "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+    /* Radii, concentric: a rounded thing inside another takes its radius minus the padding between. */
+    --radius-sheet: 20px;
+    --radius-popover: 16px;
+    --radius-card: 13px;
+    --radius-cell: 12px;
+    --radius-group: 11px;
+    --radius-control: 9px;
+    --radius-chip: 8px;
+    --radius-pill: 999px;
+
+    /* The iOS text styles at the default Dynamic Type size. */
+    --text-display: 56px;
+    --text-large-title: 34px;
+    --text-title-1: 28px;
+    --text-title-2: 22px;
+    --text-title-3: 20px;
+    --text-headline: 17px;
+    --text-body: 17px;
+    --text-callout: 16px;
+    --text-subhead: 15px;
+    --text-footnote: 13px;
+    --text-caption-1: 12px;
+    --text-caption-2: 11px;
+    --text-input: 17px;
+
+    /* Glass. */
+    --glass-blur: 40px;
+    --glass-saturate: 1.85;
+    --glass-brightness: 1.05;
+
+    /* Motion. The two `-back` curves are the time-reversed spring and glide. */
+    --dur-fast: 0.18s;
+    --dur-base: 0.26s;
+    --dur-slow: 0.35s;
+    --ease-spring: cubic-bezier(0.32, 1.28, 0.5, 1);
+    --ease-glide: cubic-bezier(0.32, 0.72, 0.35, 1);
+    --ease-gentle: cubic-bezier(0.37, 0, 0.23, 1);
+    --ease-spring-back: cubic-bezier(0.5, 0, 0.68, -0.28);
+    --ease-glide-back: cubic-bezier(0.65, 0, 0.68, 0.28);
+
+    /* The dark palette. */
+    --color-bg: #000000;
+    --color-surface: #1c1c1e;
+    --color-text: #ffffff;
+    --color-divider: rgba(84, 84, 88, 0.65);
+    --opaque-divider: #38383a;
+    --label-2: rgba(235, 235, 245, 0.6);
+    --label-3: rgba(235, 235, 245, 0.3);
+    --label-4: rgba(235, 235, 245, 0.16);
+    --fill: rgba(118, 118, 128, 0.24);
+    --fill-strong: rgba(120, 120, 128, 0.36);
+    --material: rgba(30, 30, 32, 0.8);
+    --hairline: rgba(255, 255, 255, 0.12);
+    --glass-regular: rgba(38, 38, 42, 0.44);
+    --glass-clear: rgba(30, 30, 34, 0.28);
+    --glass-opaque: #1c1c1e;
+    --glass-edge: rgba(255, 255, 255, 0.13);
+    --glass-edge-strong: rgba(255, 255, 255, 0.65);
+    --glass-shine: rgba(255, 255, 255, 0.24);
+    --glass-under: rgba(255, 255, 255, 0.07);
+    --scrim: rgba(0, 0, 0, 0.45);
+    --scrim-soft: rgba(0, 0, 0, 0.28);
+    --cal-red: #ff6b63;
+    --cal-orange: #f2a54a;
+    --cal-yellow: #e6c032;
+    --cal-green: #52c46f;
+    --cal-teal: #4cc3d6;
+    --cal-blue: #7aaee0;
+    --cal-purple: #b088e6;
+    --cal-pink: #f0709c;
+    --red: #ff453a;
+    --gray: #8e8e93;
+    --on-gray: #ffffff;
+    --color-accent: #94bce3;
+    --color-accent-700: #35597a;
+    --on-accent: #0f1317;
+    --accent-ink: #94bce3;
+    --badge-bg: #e0736f;
+    --badge-ink: #1a0d0c;
+    --shadow-lift: 0 8px 22px rgba(0, 0, 0, 0.5);
+    --shadow-pill: 0 4px 14px rgba(0, 0, 0, 0.4);
+
+    /*
+     * Dashboard additions — what Horah has no use for.
+     *
+     * `--green` is iOS's system green, for what is up and what is online; Horah
+     * has `--red` and no green because nothing in a calendar is "up".
+     * `--radius-tick` is for a mark smaller than a chip: a day of the GitHub
+     * graph, eleven pixels across, where `--radius-chip` would make a dot.
+     */
+    --green: #30d158;
+    --radius-tick: 3px;
+}
+
+/*
+ * The floor, from Horah's `base.css`: the system's type rendered the way the
+ * system renders it.
+ */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    background: var(--color-bg);
+}
+
+body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-subhead);
+    letter-spacing: -0.01em;
+    font-optical-sizing: auto;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+
+    height: 100vh;
+    padding: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+button {
+    font-family: inherit;
+}
+
+input,
+textarea,
+select {
+    font-size: var(--text-input);
+    font-family: inherit;
+}
+
+/* The bar is hidden everywhere, as in Horah; what scrolls still scrolls. */
+* {
+    scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+    display: none;
+}
+
+/* Scrolling past the end of an inner list stops there. */
+.scroll-contain {
+    overscroll-behavior: contain;
+}
+
+/* The one ring, on everything the keyboard stops on: 2 px of accent, inside the box. */
+:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+}
+
+/*
+ * **Liquid glass**, the one material, worn by every floating surface: the
+ * sheets, the config editor, the GitHub toast and its tooltip. Four layers —
+ * a see-through tint over a heavy blur, a specular line along the top inner
+ * edge, a sheen down the face, a hairline and a floating shadow. Inherit it;
+ * never re-declare it.
+ */
+.om-glass {
+    background: var(--glass-regular);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+        brightness(var(--glass-brightness));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness));
+    border: 0.5px solid var(--glass-edge);
+    box-shadow:
+        inset 0 0.5px 0 0 var(--glass-shine),
+        inset 0 -0.5px 0 0 var(--glass-under),
+        0 16px 46px rgba(0, 0, 0, 0.3),
+        0 2px 10px rgba(0, 0, 0, 0.14);
+    transition:
+        background var(--dur-base),
+        box-shadow var(--dur-base);
+}
+
+.om-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--glass-shine) 26%, transparent) 0,
+        transparent 18%,
+        transparent 82%,
+        color-mix(in srgb, var(--glass-under) 34%, transparent) 100%
+    );
+}
+
+/* A surface's own content sits above its sheen. */
+.om-glass > * {
+    position: relative;
+    z-index: 1;
+}
+
+@media (prefers-contrast: more) {
+    .om-glass {
+        border-color: var(--glass-edge-strong);
+    }
+}
+
+/*
+ * **Glass arrives like glass**: up from 0.96 while the blur thickens from
+ * nothing. It scales on `scale`, not `transform`, so a surface whose transform
+ * is a centring can still arrive this way.
+ *
+ * **And leaves the way it came.** `omGlassOut` is the same keyframes run
+ * backwards, played on `--ease-spring-back` so the path is retraced exactly. It
+ * is a second name rather than `animation-direction: reverse` on the first,
+ * because Chromium updates an animation whose only change is its direction
+ * instead of starting it again — and an arrival long finished, reversed, lands
+ * on its far end at once.
+ */
+@keyframes omGlassIn {
+    from {
+        opacity: 0;
+        scale: 0.96;
+        -webkit-backdrop-filter: blur(0) saturate(1) brightness(1);
+        backdrop-filter: blur(0) saturate(1) brightness(1);
+    }
+    to {
+        opacity: 1;
+        scale: 1;
+        -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+            brightness(var(--glass-brightness));
+        backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness));
+    }
+}
+
+@keyframes omGlassOut {
+    from {
+        opacity: 1;
+        scale: 1;
+        -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+            brightness(var(--glass-brightness));
+        backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness));
+    }
+    to {
+        opacity: 0;
+        scale: 0.96;
+        -webkit-backdrop-filter: blur(0) saturate(1) brightness(1);
+        backdrop-filter: blur(0) saturate(1) brightness(1);
+    }
+}
+
+/* A scrim has no material to thicken: it only fades, on the gentle curve. */
+@keyframes omFadeIn {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes omFadeOut {
+    to {
+        opacity: 0;
+    }
+}
+
+/*
+ * **Every press answers.** `.om-chip` squashes the whole control; `.om-icon`,
+ * `.om-tile` and `.om-list-row` wash with `--fill`. Hover is for a pointer
+ * that hovers, so a touch screen does not keep the last thing tapped lit.
+ */
+.om-chip {
+    transition:
+        background var(--dur-fast),
+        color var(--dur-fast),
+        transform 0.14s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+
+.om-chip:active {
+    transform: scale(0.94);
+}
+
+.om-icon {
+    transition:
+        background var(--dur-fast),
+        color var(--dur-fast),
+        transform 0.14s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+
+.om-icon:active {
+    transform: scale(0.96);
+}
+
+.om-tile {
+    transition:
+        background 0.2s,
+        box-shadow 0.2s,
+        transform 0.16s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+
+.om-tile:active {
+    transform: scale(0.982);
+}
+
+.om-list-row {
+    transition: background var(--dur-fast);
+}
+
+.om-list-row:active {
+    background: var(--fill);
+}
+
+@media (hover: hover) {
+    .om-icon:hover,
+    .om-list-row:hover {
+        background: var(--fill);
+    }
+
+    .om-tile:hover {
+        background: var(--fill-strong);
+    }
+}
+
+/*
+ * **A grouped list separates itself**: the hairline between two rows is drawn
+ * by the row below, inset to where the words start (`--rule-inset`, which the
+ * list sets because only it knows) and, for a row that bleeds into the panel's
+ * padding to give its wash room, to where they end (`--rule-end`). No component
+ * counts which row is last.
+ */
+.om-wbs {
+    --rule-inset: 0px;
+    --rule-end: 0px;
+}
+
+.om-wbs > * + * {
+    position: relative;
+}
+
+.om-wbs > * + *::before {
+    content: "";
+    position: absolute;
+    left: var(--rule-inset);
+    right: var(--rule-end);
+    top: 0;
+    height: 0.5px;
+    background: var(--hairline);
+    pointer-events: none;
+}
+
+/* A row being washed loses the rule above it and the one below, as an iOS list does. */
+@media (hover: hover) {
+    .om-wbs > .om-list-row:hover::before,
+    .om-wbs > .om-list-row:hover + *::before {
+        opacity: 0;
+    }
+}

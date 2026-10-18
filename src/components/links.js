@@ -5,6 +5,7 @@ import { createDraggable } from "./draggable.js";
 import { getConfig } from "../config-store.js";
 const config = getConfig();
 
+/* A link is a tile in the plain wash; its colour lives in the swatch beside the name. */
 const css = `
 .links-panel {
     grid-column: 3;
@@ -13,35 +14,38 @@ const css = `
 
 .link-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
     gap: 6px;
+    overflow-y: auto;
 }
 
 .link-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    font-size: 0.68rem;
+    gap: 8px;
+    min-width: 0;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: var(--radius-cell);
+    background: var(--fill);
+    font-size: var(--text-footnote);
+    font-weight: 590;
     text-decoration: none;
-    color: var(--text);
-    transition: all 0.15s;
+    color: var(--color-text);
     white-space: nowrap;
     cursor: grab;
 }
 
-.link-item:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+.link-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .link-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
     flex-shrink: 0;
 }
 `;
@@ -88,7 +92,7 @@ function renderLinks() {
                     <a
                         href=${l.href}
                         target="_blank"
-                        class="link-item ${drag.classFor(displayIdx)}"
+                        class="link-item om-tile ${drag.classFor(displayIdx)}"
                         draggable="true"
                         @dragstart=${(e) => drag.start(e, displayIdx)}
                         @dragend=${(e) => drag.end(e)}
@@ -96,7 +100,7 @@ function renderLinks() {
                         @drop=${(e) => drag.drop(e, displayIdx)}
                         @click=${(e) => { if (drag.active) e.preventDefault(); }}
                     >
-                        <span class="link-dot" style="background: ${l.color}"></span>${l.label}
+                        <span class="link-dot" style="background: ${l.color}"></span><span class="link-label">${l.label}</span>
                     </a>
                 `;
             })}
@@ -109,7 +113,7 @@ export function LinksPanel() {
     injectStyles("links", css);
     queueMicrotask(() => renderLinks());
     return Panel(
-        { title: "// LINKS", className: "links-panel" },
+        { title: "Links", className: "links-panel" },
         html`<div class="link-grid" id="link-grid"></div>`,
     );
 }

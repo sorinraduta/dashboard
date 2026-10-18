@@ -1,6 +1,7 @@
 import { html, render } from "../vendor/lit-html.js";
 import { injectStyles } from "./styles.js";
 import { Panel } from "./panel.js";
+import { Icon } from "./icons.js";
 
 const css = `
 .news-panel {
@@ -8,88 +9,55 @@ const css = `
     grid-row: 1 / 4;
 }
 
-.news-visit-btn {
-    font-size: 0.6rem;
-    color: var(--dim);
-    text-decoration: none;
-    letter-spacing: 0.1em;
-    border: 1px solid var(--border);
-    padding: 2px 7px;
-    border-radius: 2px;
-    transition:
-        color 0.2s,
-        border-color 0.2s;
-}
-
-.news-visit-btn:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-}
-
-.news-loading {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--dim);
-    font-size: 0.68rem;
-}
-
 .news-list {
     flex: 1;
+    min-height: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    --rule-inset: 8px;
+    --rule-end: 8px;
 }
 
+/* A story is a two-line row: the title, and under it the byline in the quieter ink. */
 .news-item {
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.news-item:last-child {
-    border-bottom: none;
+    padding: 8px;
+    margin: 0 -8px;
+    border-radius: var(--radius-group);
 }
 
 .news-item-title {
     display: block;
-    font-size: 0.7rem;
-    color: var(--text);
+    font-size: var(--text-subhead);
+    line-height: 1.3;
+    color: var(--color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     text-decoration: none;
-    transition: color 0.2s;
-}
-
-.news-item-title:hover {
-    color: var(--accent);
 }
 
 .news-item-info {
     display: flex;
     justify-content: space-between;
-    font-size: 0.58rem;
-    color: var(--dim);
-    margin-top: 3px;
+    gap: 8px;
+    margin-top: 2px;
+    font-size: var(--text-footnote);
+    color: var(--label-2);
+    font-variant-numeric: tabular-nums;
 }
 
 .news-item-info a {
-    color: var(--dim);
+    color: inherit;
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color var(--dur-fast);
 }
 
-.news-item-info a:hover {
-    color: var(--accent);
+@media (hover: hover) {
+    .news-item-info a:hover {
+        color: var(--color-accent);
+    }
 }
-
-.news-item-author {
-    color: var(--accent) !important;
-    text-decoration: none;
-    font-size: 0.58rem;
-}
-
 `;
 
 const HN_API = "https://hacker-news.firebaseio.com/v0";
@@ -128,10 +96,10 @@ function renderStories(stories) {
     render(
         html`${stories.map(
             (s) => html`
-                <div class="news-item">
+                <div class="news-item om-list-row">
                     <a href=${s.url || `https://news.ycombinator.com/item?id=${s.id}`} target="_blank" class="news-item-title">${s.title}</a>
                     <div class="news-item-info">
-                        <span><a href="https://news.ycombinator.com/user?id=${s.by}" target="_blank" class="news-item-author">${s.by}</a> · ${timeAgo(s.time)}</span>
+                        <span><a href="https://news.ycombinator.com/user?id=${s.by}" target="_blank">${s.by}</a> · ${timeAgo(s.time)}</span>
                         <a href="https://news.ycombinator.com/item?id=${s.id}" target="_blank">${s.descendants ?? 0} comments</a>
                     </div>
                 </div>
@@ -150,14 +118,16 @@ export function NewsPanel() {
     return Panel(
         {
             title: html`
-                <span>// NEWS</span>
-                <a href=${HN_URL} target="_blank" class="news-visit-btn">VISIT ↗</a>
+                <span>News</span>
+                <a href=${HN_URL} target="_blank" class="panel-btn om-icon" title="Open Hacker News (N)" aria-label="Open Hacker News">
+                    ${Icon("arrowUpRight", { size: 18 })}
+                </a>
             `,
             className: "news-panel",
         },
         html`
-            <div class="news-loading" id="news-loading">// loading...</div>
-            <div class="news-list" id="news-list"></div>
+            <div class="panel-note" id="news-loading">Loading…</div>
+            <div class="news-list om-wbs" id="news-list"></div>
         `,
     );
 }

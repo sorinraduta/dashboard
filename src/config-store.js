@@ -33,10 +33,51 @@ try {
     fileConfig = merge(mod.default);
 } catch {}
 
+// Additions to a config that is already saved. Once the editor has written a
+// config to localStorage, a later change to config.js never reaches it, so an
+// entry the dashboard should start showing is seeded here instead — once: each
+// seed is recorded as it lands, so deleting the entry in the editor is final.
+// Seeds go into the stored JSON as-is, so keys `merge` does not know survive.
+const SEEDS_KEY = "dashboard-config-seeds";
+
+const SEEDS = [
+    {
+        id: "monitor-horah",
+        apply(cfg) {
+            const horah = { name: "horah.app", url: "https://horah.app", check: "https://horah.app", icon: "horah" };
+            cfg.monitor = cfg.monitor && typeof cfg.monitor === "object" ? cfg.monitor : {};
+            if (!Array.isArray(cfg.monitor.websites)) cfg.monitor.websites = [];
+            const host = (u) => { try { return new URL(u).hostname; } catch { return null; } };
+            if (cfg.monitor.websites.some((w) => host(w?.url) === host(horah.url))) return false;
+            cfg.monitor.websites.push(horah);
+            return true;
+        },
+    },
+];
+
+function applySeeds(stored) {
+    let applied;
+    try { applied = new Set(JSON.parse(localStorage.getItem(SEEDS_KEY)) || []); } catch { applied = new Set(); }
+    const pending = SEEDS.filter((seed) => !applied.has(seed.id));
+    if (!pending.length) return stored;
+
+    let changed = false;
+    for (const seed of pending) {
+        changed = seed.apply(stored) || changed;
+        applied.add(seed.id);
+    }
+    if (changed) setConfig(stored);
+    localStorage.setItem(SEEDS_KEY, JSON.stringify([...applied]));
+    return stored;
+}
+
 export function getConfig() {
     try {
         const s = localStorage.getItem(KEY);
-        if (s) return merge(JSON.parse(s));
+        if (s) {
+            const stored = JSON.parse(s);
+            if (stored && typeof stored === "object") return merge(applySeeds(stored));
+        }
     } catch {}
     return fileConfig;
 }

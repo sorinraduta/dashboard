@@ -1,9 +1,13 @@
 # Dashboard — New Tab
 
-A personal, terminal-styled new-tab dashboard for Chrome. Replaces the browser's
-new-tab page with an at-a-glance grid of daily quests, a clock, your GitHub
-contribution graph, live markets, uptime monitors, Hacker News, and more — all
-in a monospace, green-on-black aesthetic.
+A personal new-tab dashboard for Chrome. Replaces the browser's new-tab page
+with an at-a-glance grid of daily quests, a clock, your GitHub contribution
+graph, live markets, uptime monitors, Hacker News, and more.
+
+It wears [Horah](https://horah.app)'s design: iOS 26 in a browser — SF Pro,
+Apple's dark palette and radii, opaque cards on black, and liquid glass for
+everything that floats over them (the expanded views, the config editor, the
+GitHub toast). The tokens are Horah's, copied into `src/theme.css`.
 
 Built with vanilla JavaScript and [lit-html](https://lit.dev/) — no build step,
 no framework, no bundler.
@@ -125,4 +129,5 @@ which persists to `localStorage` and takes precedence over `config.js`.
 
 ## Tech
 
-Vanilla JS · lit-html · Chrome Extension Manifest V3 · no build step.
+Vanilla JS · lit-html · Chrome Extension Manifest V3 · no build step. Styles
+read the CSS custom properties in `src/theme.css`.
